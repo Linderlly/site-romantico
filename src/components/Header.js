@@ -1,7 +1,16 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 
 const Header = () => {
+  const handleScroll = (sectionId) => {
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start'
+      });
+    }
+  };
+
   return (
     <header className="header">
       <nav className="nav">
@@ -9,10 +18,10 @@ const Header = () => {
           💖 Nosso Amor
         </div>
         <ul className="nav-links">
-          <li><Link to="#inicio">Início</Link></li>
-          <li><Link to="#historia">Nossa História</Link></li>
-          <li><Link to="#fotos">Fotos</Link></li>
-          <li><Link to="#contato">Contato</Link></li>
+          <li><button onClick={() => handleScroll('inicio')}>Início</button></li>
+          <li><button onClick={() => handleScroll('historia')}>Nossa História</button></li>
+          <li><button onClick={() => handleScroll('fotos')}>Fotos</button></li>
+          <li><button onClick={() => handleScroll('contato')}>Contato</button></li>
         </ul>
       </nav>
     </header>

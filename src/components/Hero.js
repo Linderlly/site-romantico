@@ -11,7 +11,10 @@ const Hero = () => {
           "O amor não se vê com os olhos, mas com o coração."<br />
           - William Shakespeare
         </p>
-        <button className="cta-button">
+        <button 
+          className="cta-button"
+          onClick={() => document.getElementById('historia').scrollIntoView({ behavior: 'smooth' })}
+        >
           Nossa Jornada
         </button>
       </div>
