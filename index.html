@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nosso Amor Eterno</title>
+    <link rel="icon" type="image/x-icon" href="images/heart.png">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">💖 Nosso Amor</div>
+            <ul class="nav-links">
+                <li><button onclick="scrollToSection('inicio')">Início</button></li>
+                <li><button onclick="scrollToSection('historia')">Nossa História</button></li>
+                <li><button onclick="scrollToSection('fotos')">Fotos</button></li>
+                <li><button onclick="scrollToSection('contato')">Contato</button></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="inicio" class="hero">
+        <div class="hero-content">
+            <h1 class="hero-title">Para o amor da minha vida 💕</h1>
+            <p class="hero-subtitle">
+                "O amor não se vê com os olhos, mas com o coração."<br>
+                - William Shakespeare
+            </p>
+            <button class="cta-button" onclick="scrollToSection('historia')">Nossa Jornada</button>
+        </div>
+    </section>
+
+    <!-- Love Story Section -->
+    <section id="historia" class="love-story">
+        <div class="container">
+            <h2>Nossa História de Amor</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h3>Nosso Primeiro Encontro</h3>
+                        <p>O dia em que nossos olhares se cruzaram e soubemos que algo especial estava começando.</p>
+                    </div>
+                    <div class="timeline-marker">💖</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h3>Primeiro Beijo</h3>
+                        <p>Um momento mágico que ficará guardado para sempre em nossos corações.</p>
+                    </div>
+                    <div class="timeline-marker">💕</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-content">
+                        <h3>O Sim</h3>
+                        <p>Quando decidimos construir nossa vida juntos, lado a lado.</p>
+                    </div>
+                    <div class="timeline-marker">💑</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section id="fotos" class="gallery">
+        <div class="container">
+            <h2>Nossos Momentos Especiais</h2>
+            <div class="photo-grid" id="photoGrid">
+                <!-- As fotos serão carregadas via JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Countdown Section -->
+    <section class="countdown">
+        <div class="container">
+            <h2>💖 Tempo de Amor 💖</h2>
+            <p class="countdown-subtitle">Cada segundo ao seu lado é um momento especial</p>
+            <div class="countdown-timer">
+                <div class="time-unit">
+                    <span class="time-number" id="years">0</span>
+                    <span class="time-label">Anos</span>
+                </div>
+                <div class="time-unit">
+                    <span class="time-number" id="months">0</span>
+                    <span class="time-label">Meses</span>
+                </div>
+                <div class="time-unit">
+                    <span class="time-number" id="days">0</span>
+                    <span class="time-label">Dias</span>
+                </div>
+                <div class="time-unit">
+                    <span class="time-number" id="hours">0</span>
+                    <span class="time-label">Horas</span>
+                </div>
+                <div class="time-unit">
+                    <span class="time-number" id="minutes">0</span>
+                    <span class="time-label">Minutos</span>
+                </div>
+                <div class="time-unit">
+                    <span class="time-number" id="seconds">0</span>
+                    <span class="time-label">Segundos</span>
+                </div>
+            </div>
+            <div class="love-message">
+                <p id="loveMessage">✨ Há 0 anos, 0 meses e 0 dias compartilhando amor! ✨</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contato" class="contact">
+        <div class="container">
+            <h2>Deixe uma Mensagem de Amor</h2>
+            <form class="love-form" onsubmit="handleSubmit(event)">
+                <textarea 
+                    id="message" 
+                    placeholder="Escreva sua mensagem de amor aqui..." 
+                    rows="5" 
+                    required
+                ></textarea>
+                <button type="submit" class="submit-button">Enviar Mensagem 💌</button>
+            </form>
+            <div class="love-quote">
+                <p>"O amor é composto de uma única alma habitando dois corpos."</p>
+                <span>- Aristóteles</span>
+            </div>
+        </div>
+    </section>
+
+    <script src="script.js"></script>
+</body>
+</html>
