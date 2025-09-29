@@ -1,7 +1,7 @@
 {
   "name": "site-romantico",
   "version": "0.1.0",
-  "homepage": "https://seu-usuario.github.io/site-romantico",
+  "homepage": "https://linderlly.github.io/site-romantico/",
   "scripts": {
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
