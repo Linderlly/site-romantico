@@ -1,0 +1,16 @@
+{
+  "name": "site-romantico",
+  "version": "0.1.0",
+  "homepage": "https://seu-usuario.github.io/site-romantico",
+  "scripts": {
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build",
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
+  },
+  "dependencies": {
+    "react-router-dom": "^7.9.3"
+  }
+}
