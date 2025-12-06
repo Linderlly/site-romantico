@@ -2,27 +2,146 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Nosso Amor Eterno</title>
-    <link rel="icon" type="image/x-icon" href="images/heart.png">
+    
+    <!-- Ícone da página -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💖</text></svg>">
+    
+    <!-- Estilos -->
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Meta tags para mobile -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#e91e63">
 </head>
 <body>
+    <!-- Corações flutuantes -->
+    <div id="hearts-container"></div>
+
+    <!-- Cursor personalizado (só desktop) -->
+    <div class="custom-cursor" id="customCursor">💖</div>
+
+    <!-- Loading para mobile -->
+    <div class="mobile-loading" id="mobileLoading">
+        <div class="loading-heart">💖</div>
+        <p>Carregando nosso amor...</p>
+    </div>
+
     <!-- Header -->
     <header class="header">
         <nav class="nav">
             <div class="logo">💖 Nosso Amor</div>
-            <ul class="nav-links">
+            
+            <!-- Botão de tema no header -->
+            <button class="theme-toggle" id="themeToggle">
+                <i class="fas fa-moon"></i>
+            </button>
+            
+            <!-- Menu para desktop -->
+            <ul class="nav-links desktop-menu">
                 <li><button onclick="scrollToSection('inicio')">Início</button></li>
                 <li><button onclick="scrollToSection('historia')">Nossa História</button></li>
                 <li><button onclick="scrollToSection('fotos')">Fotos</button></li>
                 <li><button onclick="scrollToSection('contato')">Contato</button></li>
             </ul>
+            
+            <!-- Menu hamburguer para mobile -->
+            <button class="menu-toggle" id="menuToggle">
+                <i class="fas fa-bars"></i>
+            </button>
         </nav>
+        
+        <!-- Menu mobile (expansível) -->
+        <div class="mobile-menu" id="mobileMenu">
+            <ul>
+                <li><button onclick="scrollToSection('inicio')">Início</button></li>
+                <li><button onclick="scrollToSection('historia')">Nossa História</button></li>
+                <li><button onclick="scrollToSection('fotos')">Fotos</button></li>
+                <li><button onclick="scrollToSection('contato')">Contato</button></li>
+            </ul>
+        </div>
     </header>
+
+    <!-- Player de Música Local -->
+    <div class="music-player">
+        <div class="player-container">
+            <!-- Controles do player -->
+            <div class="player-header">
+                <h3><i class="fas fa-music"></i> Músicas do Nosso Amor</h3>
+                <button class="player-toggle" id="playerToggle">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            
+            <div class="player-content" id="playerContent">
+                <!-- Player de áudio HTML5 (criado via JavaScript) -->
+                
+                <!-- Controles personalizados -->
+                <div class="youtube-controls">
+                    <div class="controls-top">
+                        <button id="prevBtn" class="control-btn" title="Música anterior">
+                            <i class="fas fa-step-backward"></i>
+                        </button>
+                        <button id="playBtn" class="control-btn play-btn" title="Play/Pause">
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button id="nextBtn" class="control-btn" title="Próxima música">
+                            <i class="fas fa-step-forward"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="song-info">
+                        <div id="songTitle" class="current-song">Selecione uma música</div>
+                        <div class="progress-container">
+                            <div class="progress-bar" id="progressBar">
+                                <div class="progress-fill" id="progressFill"></div>
+                            </div>
+                            <div class="time-display">
+                                <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="controls-bottom">
+                        <div class="volume-container">
+                            <button id="muteBtn" class="volume-btn" title="Mutar/Desmutar">
+                                <i class="fas fa-volume-up"></i>
+                            </button>
+                            <input type="range" id="volumeSlider" min="0" max="100" value="70" title="Volume">
+                            <span id="volumePercent">70%</span>
+                        </div>
+                        
+                        <button id="fullscreenBtn" class="fullscreen-btn" title="Informações da música">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Playlist -->
+                <div class="playlist-container">
+                    <h4><i class="fas fa-list"></i> Nossa Playlist Romântica</h4>
+                    <div class="playlist" id="playlist">
+                        <!-- Playlist será gerada pelo JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botão de play para mobile -->
+    <button class="mobile-play-button" id="mobilePlayButton">
+        <i class="fas fa-play"></i> Tocar Música
+    </button>
 
     <!-- Hero Section -->
     <section id="inicio" class="hero">
@@ -133,6 +252,7 @@
         </div>
     </section>
 
+    <!-- Scripts -->
     <script src="script.js"></script>
 </body>
 </html>
