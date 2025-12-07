@@ -56,8 +56,61 @@ const CONFIG = {
             artist: 'Carlinhos Brown',
             duration: '2:39',
             format: 'mp3'
+        },
+        { 
+            src: 'music/musica5.mp3', 
+            title: 'Olhos Castanhos',
+            artist: 'Geovanna Jainy',
+            duration: '2:30',
+            format: 'mp3'
+        },
+        { 
+            src: 'music/musica6.mp3', 
+            title: 'Those Eyes',
+            artist: 'New West',
+            duration: '3:40',
+            format: 'mp3'
+        },
+        { 
+            src: 'music/musica7.mp3', 
+            title: 'Pela Luz dos Olhos teus',
+            artist: 'Miucha & Antonio Carlos Jobim',
+            duration: '2:46',
+            format: 'mp3'
+        },
+        { 
+            src: 'music/musica8.mp3', 
+            title: 'Lisboa',
+            artist: 'Ana Vitória',
+            duration: '3:39',
+            format: 'mp3'
         }
-    ]
+    ],
+    
+    // Configuração do jardim das rosas
+    garden: {
+        totalRoses: 15,
+        specialRoseIndex: 7, // Índice da rosa especial
+        roseGrowth: 50, // Crescimento inicial (0-100)
+        lastWatered: null,
+        roseMessages: [
+            "Nosso primeiro encontro",
+            "Primeira viagem juntos",
+            "Aquele jantar especial",
+            "Dia dos namorados",
+            "Nosso aniversário",
+            "Caminhada no parque",
+            "Noite de filmes",
+            "🌟 NOSSA ROSA DOURADA 🌟",
+            "Conversas até tarde",
+            "Surpresa inesquecível",
+            "Aquele café da manhã",
+            "Dia chuvoso em casa",
+            "Festa com amigos",
+            "Projeto conjunto",
+            "Momento de superação"
+        ]
+    }
 };
 
 // ===== VARIÁVEIS GLOBAIS =====
@@ -121,6 +174,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar player de áudio
     initializeAudioPlayer();
+    
+    // Inicializar jardim das rosas
+    initializeGarden();
     
     // Esconder loading após 2 segundos
     setTimeout(() => {
@@ -470,6 +526,393 @@ function enableLightMode() {
     localStorage.setItem('theme', 'light');
 }
 
+// ===== JARDIM DAS ROSAS =====
+function initializeGarden() {
+    console.log('🌹 Inicializando jardim das rosas...');
+    
+    // Carregar dados salvos
+    loadGardenData();
+    
+    // Criar rosas
+    createRoses();
+    
+    // Configurar botão de regar
+    const waterBtn = document.getElementById('waterGarden');
+    if (waterBtn) {
+        waterBtn.addEventListener('click', waterGarden);
+    }
+    
+    // Atualizar estatísticas
+    updateGardenStats();
+    
+    // Atualizar crescimento da rosa especial
+    updateRoseGrowth();
+}
+
+function loadGardenData() {
+    try {
+        const savedGarden = JSON.parse(localStorage.getItem('loveGarden'));
+        if (savedGarden) {
+            CONFIG.garden.roseGrowth = savedGarden.roseGrowth || CONFIG.garden.roseGrowth;
+            CONFIG.garden.lastWatered = savedGarden.lastWatered || CONFIG.garden.lastWatered;
+            CONFIG.garden.specialRoseIndex = savedGarden.specialRoseIndex || CONFIG.garden.specialRoseIndex;
+            
+            // Verificar se pode crescer desde a última rega
+            if (CONFIG.garden.lastWatered) {
+                const lastWateredDate = new Date(CONFIG.garden.lastWatered);
+                const now = new Date();
+                const hoursSinceWater = (now - lastWateredDate) / (1000 * 60 * 60);
+                
+                // Se passou mais de 24 horas, perder um pouco de crescimento
+                if (hoursSinceWater > 24 && CONFIG.garden.roseGrowth > 0) {
+                    CONFIG.garden.roseGrowth = Math.max(0, CONFIG.garden.roseGrowth - 5);
+                    saveGardenData();
+                }
+            }
+        }
+    } catch (e) {
+        console.log('Erro ao carregar dados do jardim:', e);
+    }
+}
+
+function saveGardenData() {
+    try {
+        localStorage.setItem('loveGarden', JSON.stringify({
+            roseGrowth: CONFIG.garden.roseGrowth,
+            lastWatered: CONFIG.garden.lastWatered,
+            specialRoseIndex: CONFIG.garden.specialRoseIndex
+        }));
+    } catch (e) {
+        console.log('Erro ao salvar dados do jardim:', e);
+    }
+}
+
+function createRoses() {
+    const gardenContainer = document.getElementById('gardenContainer');
+    if (!gardenContainer) return;
+    
+    gardenContainer.innerHTML = '';
+    
+    // Se não tiver mensagens suficientes, criar algumas padrão
+    while (CONFIG.garden.roseMessages.length < CONFIG.garden.totalRoses) {
+        CONFIG.garden.roseMessages.push(`Rosa do Amor ${CONFIG.garden.roseMessages.length + 1}`);
+    }
+    
+    for (let i = 0; i < CONFIG.garden.totalRoses; i++) {
+        const isSpecial = i === CONFIG.garden.specialRoseIndex;
+        
+        const roseItem = document.createElement('div');
+        roseItem.className = 'rose-item';
+        roseItem.dataset.index = i;
+        
+        // Posição aleatória para as folhas
+        const leafLeft = Math.random() * 15 + 10;
+        const leafRight = Math.random() * 15 + 10;
+        
+        roseItem.innerHTML = `
+            <div class="rose ${isSpecial ? 'rose-special' : 'rose-normal'}">
+                ${isSpecial ? '🏵️' : '🌹'}
+            </div>
+            <div class="rose-stem"></div>
+            <div class="rose-leaf left" style="bottom: ${leafLeft}px;"></div>
+            <div class="rose-leaf right" style="bottom: ${leafRight}px;"></div>
+            <div class="rose-tooltip">${CONFIG.garden.roseMessages[i]}</div>
+        `;
+        
+        // Adicionar evento de clique
+        roseItem.addEventListener('click', () => onRoseClick(i, isSpecial));
+        
+        // Adicionar animação de entrada
+        roseItem.style.opacity = '0';
+        roseItem.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            roseItem.style.transition = 'all 0.5s ease';
+            roseItem.style.opacity = '1';
+            roseItem.style.transform = 'translateY(0)';
+        }, i * 100);
+        
+        gardenContainer.appendChild(roseItem);
+    }
+}
+
+function onRoseClick(index, isSpecial) {
+    const message = CONFIG.garden.roseMessages[index];
+    
+    if (isSpecial) {
+        showNotification(`💖 ${message} - Nossa rosa mais especial!`);
+        
+        // Criar efeito de brilho na rosa especial
+        const specialRose = document.querySelector(`.rose-item[data-index="${index}"] .rose`);
+        if (specialRose) {
+            specialRose.style.animation = 'none';
+            setTimeout(() => {
+                specialRose.style.animation = 'specialRoseGlow 2s infinite alternate';
+            }, 10);
+        }
+        
+        // Mostrar mensagem especial
+        const specialMessage = document.getElementById('specialRoseMessage');
+        if (specialMessage) {
+            const specialMessages = [
+                "Esta rosa dourada representa o amor mais puro que temos!",
+                "Nosso amor brilha como ouro em meio às outras rosas!",
+                "Cada pétala desta rosa é um momento inesquecível nosso!",
+                "A rosa mais bonita do jardim, assim como você é para mim!",
+                "Nosso amor especial, representado nesta rosa única!"
+            ];
+            specialMessage.textContent = specialMessages[Math.floor(Math.random() * specialMessages.length)];
+        }
+    } else {
+        showNotification(`🌹 ${message}`);
+    }
+    
+    // Efeito visual no clique
+    createRoseClickEffect(index);
+}
+
+function createRoseClickEffect(index) {
+    const roseItem = document.querySelector(`.rose-item[data-index="${index}"]`);
+    if (!roseItem) return;
+    
+    // Criar partículas de pétalas
+    for (let i = 0; i < 5; i++) {
+        setTimeout(() => {
+            const petal = document.createElement('div');
+            petal.innerHTML = '🌸';
+            petal.style.cssText = `
+                position: absolute;
+                font-size: 20px;
+                pointer-events: none;
+                z-index: 10;
+                opacity: 0.8;
+                animation: petalFloat 1s ease-out forwards;
+            `;
+            
+            const rect = roseItem.getBoundingClientRect();
+            const startX = rect.left + rect.width / 2;
+            const startY = rect.top + rect.height / 2;
+            
+            petal.style.left = startX + 'px';
+            petal.style.top = startY + 'px';
+            
+            // Animação única para cada pétala
+            petal.style.setProperty('--end-x', (Math.random() * 100 - 50) + 'px');
+            petal.style.setProperty('--end-y', (Math.random() * 100 - 150) + 'px');
+            
+            document.body.appendChild(petal);
+            
+            setTimeout(() => {
+                if (petal.parentNode) {
+                    petal.remove();
+                }
+            }, 1000);
+        }, i * 100);
+    }
+}
+
+function waterGarden() {
+    // Verificar se já regou hoje
+    const lastWatered = CONFIG.garden.lastWatered ? new Date(CONFIG.garden.lastWatered) : null;
+    const today = new Date();
+    
+    if (lastWatered && 
+        lastWatered.getDate() === today.getDate() &&
+        lastWatered.getMonth() === today.getMonth() &&
+        lastWatered.getFullYear() === today.getFullYear()) {
+        
+        showNotification('💧 Você já regou o jardim hoje! Volte amanhã.');
+        return;
+    }
+    
+    // Aumentar crescimento da rosa especial
+    CONFIG.garden.roseGrowth = Math.min(100, CONFIG.garden.roseGrowth + 10);
+    CONFIG.garden.lastWatered = today.toISOString();
+    
+    // Salvar dados
+    saveGardenData();
+    
+    // Atualizar interface
+    updateRoseGrowth();
+    updateGardenStats();
+    
+    // Efeito visual de regar
+    createWaterEffect();
+    
+    // Atualizar mensagem baseada no crescimento
+    const growth = CONFIG.garden.roseGrowth;
+    let message = '';
+    
+    if (growth >= 100) {
+        message = '🎉 Nossa rosa dourada está completamente crescida! Amor perfeito!';
+        // Desbloquear algo especial
+        unlockGardenAchievement();
+    } else if (growth >= 75) {
+        message = '🌺 Nossa rosa especial está quase totalmente crescida!';
+    } else if (growth >= 50) {
+        message = '🌸 Rosa dourada está na metade do caminho! Continue regando!';
+    } else if (growth >= 25) {
+        message = '🌷 Rosa especial está começando a brilhar!';
+    } else {
+        message = '🌱 Rosa dourada está apenas brotando. Continue regando!';
+    }
+    
+    showNotification(`💧 Jardim regado! ${message}`);
+    
+    // Animação nas rosas
+    animateRosesAfterWatering();
+}
+
+function createWaterEffect() {
+    const gardenContainer = document.getElementById('gardenContainer');
+    if (!gardenContainer) return;
+    
+    // Criar múltiplos efeitos de água
+    for (let i = 0; i < 3; i++) {
+        const waterEffect = document.createElement('div');
+        waterEffect.className = 'water-effect';
+        
+        // Posição aleatória
+        const rect = gardenContainer.getBoundingClientRect();
+        const x = rect.left + Math.random() * rect.width;
+        const y = rect.top + Math.random() * rect.height;
+        
+        waterEffect.style.left = x + 'px';
+        waterEffect.style.top = y + 'px';
+        
+        document.body.appendChild(waterEffect);
+        
+        // Remover após animação
+        setTimeout(() => {
+            if (waterEffect.parentNode) {
+                waterEffect.remove();
+            }
+        }, 1000);
+    }
+}
+
+function animateRosesAfterWatering() {
+    const roses = document.querySelectorAll('.rose-item');
+    
+    roses.forEach((rose, index) => {
+        setTimeout(() => {
+            rose.style.transform = 'translateY(-10px)';
+            
+            // Adicionar efeito de brilho temporário
+            const roseIcon = rose.querySelector('.rose');
+            if (roseIcon) {
+                const originalClass = roseIcon.className;
+                roseIcon.style.filter = 'brightness(1.3)';
+                
+                setTimeout(() => {
+                    rose.style.transform = '';
+                    roseIcon.style.filter = '';
+                }, 500);
+            }
+        }, index * 50);
+    });
+}
+
+function updateRoseGrowth() {
+    const growthElement = document.getElementById('roseGrowth');
+    const progressFill = document.getElementById('roseProgressFill');
+    
+    if (growthElement) {
+        growthElement.textContent = `${CONFIG.garden.roseGrowth}%`;
+    }
+    
+    if (progressFill) {
+        progressFill.style.width = `${CONFIG.garden.roseGrowth}%`;
+        
+        // Mudar cor baseada no crescimento
+        if (CONFIG.garden.roseGrowth >= 75) {
+            progressFill.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
+        } else if (CONFIG.garden.roseGrowth >= 50) {
+            progressFill.style.background = 'linear-gradient(90deg, #FFC107, #FF9800)';
+        } else {
+            progressFill.style.background = 'linear-gradient(90deg, #FF9800, #FF5722)';
+        }
+    }
+}
+
+function updateGardenStats() {
+    // Atualizar contador de rosas
+    const totalRoses = document.getElementById('totalRoses');
+    if (totalRoses) {
+        totalRoses.textContent = CONFIG.garden.totalRoses;
+    }
+    
+    // Atualizar contador de rosas especiais
+    const specialRoses = document.getElementById('specialRoses');
+    if (specialRoses) {
+        specialRoses.textContent = '1';
+    }
+    
+    // Atualizar contador de dias crescendo
+    const daysGrowing = document.getElementById('daysGrowing');
+    if (daysGrowing && CONFIG.startDate) {
+        const startDate = new Date(CONFIG.startDate);
+        const today = new Date();
+        const days = Math.floor((today - startDate) / (1000 * 60 * 60 * 24));
+        daysGrowing.textContent = Math.max(0, days);
+    }
+}
+
+function unlockGardenAchievement() {
+    // Quando a rosa chega a 100%, desbloquear algo especial
+    showNotification('🏆 Conquista desbloqueada: Jardineiro do Amor!');
+    
+    // Pode adicionar uma nova rosa especial, desbloquear música, etc.
+    const specialMessage = document.getElementById('specialRoseMessage');
+    if (specialMessage) {
+        specialMessage.textContent = '✨ Nossa rosa dourada está perfeita! Ela desbloqueou uma surpresa especial para nós! ✨';
+    }
+    
+    // Criar uma explosão de pétalas
+    createPetalExplosion();
+}
+
+function createPetalExplosion() {
+    for (let i = 0; i < 20; i++) {
+        setTimeout(() => {
+            const petal = document.createElement('div');
+            petal.innerHTML = '🌸';
+            petal.style.cssText = `
+                position: fixed;
+                font-size: 30px;
+                pointer-events: none;
+                z-index: 9998;
+                opacity: 0.9;
+                animation: petalExplosion 2s ease-out forwards;
+            `;
+            
+            // Posição inicial no centro
+            const startX = window.innerWidth / 2;
+            const startY = window.innerHeight / 2;
+            
+            petal.style.left = startX + 'px';
+            petal.style.top = startY + 'px';
+            
+            // Posição final aleatória
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 200 + Math.random() * 300;
+            const endX = Math.cos(angle) * distance;
+            const endY = Math.sin(angle) * distance;
+            
+            petal.style.setProperty('--end-x', endX + 'px');
+            petal.style.setProperty('--end-y', endY + 'px');
+            
+            document.body.appendChild(petal);
+            
+            setTimeout(() => {
+                if (petal.parentNode) {
+                    petal.remove();
+                }
+            }, 2000);
+        }, i * 50);
+    }
+}
+
 // ===== PLAYER DE ÁUDIO HTML5 =====
 function initializeAudioPlayer() {
     console.log('🎵 Inicializando Player de Áudio...');
@@ -699,7 +1142,6 @@ function onAudioPause() {
     updatePlaylistUI();
 }
 
-// CORREÇÃO AQUI: Quando a música terminar, NÃO passar automaticamente para próxima
 function onAudioEnded() {
     console.log('⏹️ Música terminada - NÃO passando automaticamente para próxima');
     isPlaying = false;
@@ -1100,7 +1542,6 @@ function playAudio() {
     });
 }
 
-// MODIFICADA: Agora só muda quando chamada explicitamente
 function playNextTrack() {
     if (CONFIG.musicPlaylist.length === 0) return;
     
@@ -1108,7 +1549,6 @@ function playNextTrack() {
     loadTrack(currentTrackIndex, true); // true = tocar após carregar
 }
 
-// MODIFICADA: Agora só muda quando chamada explicitamente
 function playPrevTrack() {
     if (CONFIG.musicPlaylist.length === 0) return;
     

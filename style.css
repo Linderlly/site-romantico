@@ -16,6 +16,7 @@
     --player-bg: #ffffff;
     --player-text: #333333;
     --player-border: #e0e0e0;
+    --garden-bg: #f8e1e7;
 }
 
 .dark-mode {
@@ -35,6 +36,7 @@
     --player-bg: #16213e;
     --player-text: #ffffff;
     --player-border: #2d3746;
+    --garden-bg: #1a1a2e;
 }
 
 /* ===== RESET E ESTILOS GERAIS ===== */
@@ -1158,6 +1160,359 @@ body {
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
+/* ===== JARDIM DAS ROSAS ===== */
+.rose-garden {
+    padding: 80px 0;
+    background: linear-gradient(135deg, var(--garden-bg) 0%, #f5c6d0 100%);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.dark-mode .rose-garden {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+}
+
+.rose-garden::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+}
+
+.rose-garden h2 {
+    color: #e91e63;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    position: relative;
+    z-index: 2;
+}
+
+.garden-subtitle {
+    font-size: 1.2rem;
+    margin-bottom: 3rem;
+    opacity: 0.8;
+    position: relative;
+    z-index: 2;
+}
+
+.garden-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 600px;
+    margin: 0 auto 3rem;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 15px;
+    border: 1px solid rgba(233, 30, 99, 0.2);
+    position: relative;
+    z-index: 2;
+}
+
+.dark-mode .garden-info {
+    background: rgba(26, 26, 46, 0.8);
+    border-color: rgba(255, 107, 157, 0.3);
+    color: white;
+}
+
+.garden-stats {
+    display: flex;
+    gap: 30px;
+}
+
+.stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-number {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #e91e63;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.dark-mode .stat-label {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.water-btn {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 25px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+}
+
+.water-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+}
+
+.water-btn:active {
+    transform: translateY(0);
+}
+
+.garden-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 20px;
+    max-width: 800px;
+    margin: 0 auto 3rem;
+    position: relative;
+    z-index: 2;
+}
+
+.rose-item {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.rose {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
+    transition: all 0.3s ease;
+}
+
+.rose-normal {
+    color: #e91e63;
+}
+
+.rose-special {
+    color: #ffd700;
+    animation: specialRoseGlow 2s infinite alternate;
+}
+
+@keyframes specialRoseGlow {
+    0% {
+        filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.5)) 
+                drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+        transform: scale(1);
+    }
+    100% {
+        filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.8)) 
+                drop-shadow(0 8px 16px rgba(0, 0, 0, 0.25));
+        transform: scale(1.1);
+    }
+}
+
+.rose-stem {
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 40px;
+    background: linear-gradient(to bottom, #2e7d32, #4caf50);
+    border-radius: 2px;
+}
+
+.rose-leaf {
+    position: absolute;
+    width: 20px;
+    height: 15px;
+    background: #4caf50;
+    border-radius: 50%;
+    transform: rotate(45deg);
+}
+
+.rose-leaf.left {
+    left: 15px;
+    bottom: 20px;
+}
+
+.rose-leaf.right {
+    right: 15px;
+    bottom: 20px;
+}
+
+.rose-item:hover .rose {
+    transform: scale(1.2) translateY(-10px);
+}
+
+.rose-item:hover .rose-normal {
+    color: #ff4081;
+}
+
+.rose-tooltip {
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.rose-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+.rose-item:hover .rose-tooltip {
+    opacity: 1;
+}
+
+.special-rose-info {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 25px;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 20px;
+    border: 2px solid #ffd700;
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.2);
+    position: relative;
+    z-index: 2;
+}
+
+.dark-mode .special-rose-info {
+    background: rgba(26, 26, 46, 0.8);
+    border-color: rgba(255, 107, 157, 0.3);
+    color: white;
+}
+
+.special-rose-info h3 {
+    color: #e91e63;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.special-rose-info p {
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    color: #555;
+}
+
+.dark-mode .special-rose-info p {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.rose-progress {
+    margin-top: 20px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.dark-mode .progress-label {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.rose-progress .progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.dark-mode .rose-progress .progress-bar {
+    background: #2d3746;
+}
+
+.rose-progress .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ffd700, #ff9800);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    width: 0%;
+}
+
+/* Animação de regar */
+@keyframes waterEffect {
+    0% {
+        transform: scale(0.5);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.5);
+        opacity: 0;
+    }
+}
+
+.water-effect {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle, rgba(79, 172, 254, 0.5) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 3;
+    animation: waterEffect 1s ease-out forwards;
+}
+
+/* Animação de pétalas */
+@keyframes petalFloat {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--end-x), var(--end-y)) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes petalExplosion {
+    0% {
+        transform: translate(0, 0) scale(0.5) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--end-x), var(--end-y)) scale(1) rotate(720deg);
+        opacity: 0;
+    }
+}
+
 /* ===== COUNTDOWN SECTION ===== */
 .countdown {
     padding: 80px 0;
@@ -1591,9 +1946,33 @@ body {
         gap: 15px;
     }
     
+    .garden-container {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        gap: 15px;
+    }
+    
+    .rose-item {
+        width: 80px;
+        height: 80px;
+    }
+    
+    .rose {
+        font-size: 3rem;
+    }
+    
+    .garden-info {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .garden-stats {
+        gap: 20px;
+    }
+    
     .gallery h2,
     .love-story h2,
-    .contact h2 {
+    .contact h2,
+    .rose-garden h2 {
         font-size: 2.2rem;
     }
     
@@ -1788,7 +2167,8 @@ body {
     
     .gallery h2,
     .love-story h2,
-    .contact h2 {
+    .contact h2,
+    .rose-garden h2 {
         font-size: 1.8rem;
         margin-bottom: 2rem;
     }
@@ -1858,6 +2238,20 @@ body {
     
     .countdown-timer {
         grid-template-columns: 1fr;
+    }
+    
+    .garden-container {
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 10px;
+    }
+    
+    .rose-item {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .rose {
+        font-size: 2.5rem;
     }
     
     .timeline-content h3 {

@@ -52,6 +52,7 @@
                 <li><button onclick="scrollToSection('inicio')">Início</button></li>
                 <li><button onclick="scrollToSection('historia')">Nossa História</button></li>
                 <li><button onclick="scrollToSection('fotos')">Fotos</button></li>
+                <li><button onclick="scrollToSection('jardim')">Jardim Secreto</button></li>
                 <li><button onclick="scrollToSection('contato')">Contato</button></li>
             </ul>
             
@@ -67,6 +68,7 @@
                 <li><button onclick="scrollToSection('inicio')">Início</button></li>
                 <li><button onclick="scrollToSection('historia')">Nossa História</button></li>
                 <li><button onclick="scrollToSection('fotos')">Fotos</button></li>
+                <li><button onclick="scrollToSection('jardim')">Jardim Secreto</button></li>
                 <li><button onclick="scrollToSection('contato')">Contato</button></li>
             </ul>
         </div>
@@ -191,6 +193,53 @@
             <h2>Nossos Momentos Especiais</h2>
             <div class="photo-grid" id="photoGrid">
                 <!-- As fotos serão carregadas via JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Jardim das Rosas Section -->
+    <section id="jardim" class="rose-garden">
+        <div class="container">
+            <h2>🌹 Nosso Jardim Secreto</h2>
+            <p class="garden-subtitle">Cada rosa representa um momento especial. Uma delas é nossa rosa dourada.</p>
+            
+            <div class="garden-info">
+                <div class="garden-stats">
+                    <div class="stat">
+                        <span class="stat-number" id="totalRoses">0</span>
+                        <span class="stat-label">Rosas</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number" id="specialRoses">1</span>
+                        <span class="stat-label">Especiais</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number" id="daysGrowing">0</span>
+                        <span class="stat-label">Dias Crescendo</span>
+                    </div>
+                </div>
+                
+                <button class="water-btn" id="waterGarden">
+                    <i class="fas fa-tint"></i> Regar Jardim
+                </button>
+            </div>
+            
+            <div class="garden-container" id="gardenContainer">
+                <!-- As rosas serão geradas por JavaScript -->
+            </div>
+            
+            <div class="special-rose-info" id="specialRoseInfo">
+                <h3><i class="fas fa-crown"></i> Rosa Dourada do Nosso Amor</h3>
+                <p id="specialRoseMessage">Esta rosa especial representa o momento mais importante do nosso relacionamento.</p>
+                <div class="rose-progress">
+                    <div class="progress-label">
+                        <span>Crescimento:</span>
+                        <span id="roseGrowth">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="roseProgressFill"></div>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
