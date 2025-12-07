@@ -105,26 +105,28 @@ const CONFIG = {
     
     // Configuração do jardim das rosas
     garden: {
-        totalRoses: 15,
+        totalRoses: 17,
         specialRoseIndex: 7,
         roseGrowth: 50,
         lastWatered: null,
         roseMessages: [
             "Nosso primeiro encontro",
-            "Primeira viagem juntos",
+            "As várias brincadeiras",
             "Aquele jantar especial",
             "Dia dos namorados",
             "Nosso aniversário",
             "Caminhada no parque",
-            "Noite de filmes",
+            "Nosso primeiro beijo",
             "🌟 NOSSA ROSA DOURADA 🌟",
             "Conversas até tarde",
-            "Surpresa inesquecível",
+            "Aquele lanche da tarde",
             "Aquele café da manhã",
             "Dia chuvoso em casa",
             "Festa com amigos",
             "Projeto conjunto",
-            "Momento de superação"
+            "Idas ao cinema",
+            "Todas as declarações",
+            "Todos os presentes",
         ]
     }
 };
