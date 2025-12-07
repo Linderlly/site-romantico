@@ -3,17 +3,19 @@ const CONFIG = {
     // Data do início do relacionamento (formato: 'YYYY-MM-DD')
     startDate: '2025-06-05',
     
-    // Suas fotos
+    // Suas fotos (com fallback)
     photos: [
         { 
             src: "images/foto1.jpeg", 
             alt: "Melhores momentos",
-            description: "Ao seu lado"
+            description: "Ao seu lado",
+            fallback: "💖"
         },
         { 
             src: "images/foto2.jpg", 
             alt: "Primeira viagem juntos",
-            description: "Férias inesquecíveis"
+            description: "Férias inesquecíveis",
+            fallback: "💕"
         }
     ],
     
@@ -84,14 +86,28 @@ const CONFIG = {
             artist: 'Ana Vitória',
             duration: '3:39',
             format: 'mp3'
+        },
+        { 
+            src: 'music/musica9.mp3', 
+            title: 'All Of Me',
+            artist: 'John Legend',
+            duration: '5:07',
+            format: 'mp3'
+        },
+        { 
+            src: 'music/musica10.mp3', 
+            title: 'Perfect',
+            artist: 'Ed Sheeran',
+            duration: '4:23',
+            format: 'mp3'
         }
     ],
     
     // Configuração do jardim das rosas
     garden: {
         totalRoses: 15,
-        specialRoseIndex: 7, // Índice da rosa especial
-        roseGrowth: 50, // Crescimento inicial (0-100)
+        specialRoseIndex: 7,
+        roseGrowth: 50,
         lastWatered: null,
         roseMessages: [
             "Nosso primeiro encontro",
@@ -122,6 +138,10 @@ let isMobile = false;
 let userInteracted = false;
 let audioUnlocked = false;
 
+// ===== VARIÁVEIS DO MURAL =====
+let wallMessages = [];
+let currentWallIndex = 0;
+
 // ===== VARIÁVEIS DO PLAYER DE ÁUDIO =====
 let audioPlayer = null;
 let currentTrackIndex = 0;
@@ -130,22 +150,21 @@ let playerReady = false;
 let updateInterval = null;
 let isMuted = false;
 let lastVolume = 70;
-let audioContext = null;
-let audioAnalyser = null;
-let sourceNode = null;
-let audioCanvas = null;
-let audioCanvasCtx = null;
 
-// NOVA VARIÁVEL: Controla se a música deve repetir ou ir para próxima
-let autoNextEnabled = false;
+// ===== VARIÁVEIS DO FIREBASE =====
+let firebaseReady = false;
+let firebaseInitialized = false;
+let messagesUnsubscribe = null;
+
+// ===== SISTEMA DE MENSAGENS OFFLINE =====
+const offlineMessages = [];
 
 // ===== INICIALIZAÇÃO PRINCIPAL =====
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     console.log('🚀 Inicializando Site Romântico...');
     
     // Verificar se é dispositivo móvel
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    console.log(`📱 Dispositivo móvel: ${isMobile}`);
     
     // Mostrar loading mobile
     if (isMobile) {
@@ -155,12 +174,15 @@ document.addEventListener('DOMContentLoaded', function() {
     // Carregar configurações salvas
     loadSettings();
     
-    // Inicializar componentes
+    // Inicializar componentes básicos
     initializeThemeToggle();
     initializeMenu();
     loadGallery();
     initializeCursor();
     initializeHearts();
+    
+    // Carregar mensagens offline
+    loadOfflineMessages();
     
     // Iniciar contagem do tempo
     updateTimeTogether();
@@ -178,19 +200,775 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar jardim das rosas
     initializeGarden();
     
+    // Inicializar mural de mensagens
+    initializeMessageWall();
+    
+    // Inicializar Firebase
+    initializeFirebaseConnection();
+    
     // Esconder loading após 2 segundos
     setTimeout(() => {
         document.getElementById('mobileLoading').classList.add('hidden');
-        showNotification(isMobile ? '🔊 Toque na tela para liberar o áudio' : '🎵 Clique em Play para ouvir');
+        showNotification('🎵 Bem-vindo ao nosso site de amor!');
     }, 2000);
     
     // Mostrar botão de play mobile se for mobile
     if (isMobile) {
         setTimeout(() => {
-            document.getElementById('mobilePlayButton').classList.add('show');
+            const mobileBtn = document.getElementById('mobilePlayButton');
+            if (mobileBtn) {
+                mobileBtn.classList.add('show');
+            }
         }, 3000);
     }
 });
+
+// ===== INICIALIZAÇÃO DO FIREBASE =====
+async function initializeFirebaseConnection() {
+    console.log('🔥 Inicializando conexão com Firebase...');
+    
+    // Verificar se o módulo Firebase está disponível
+    if (typeof window.firebaseApp === 'undefined') {
+        console.error('❌ Módulo Firebase não encontrado');
+        showNotification('⚠️ Firebase não disponível. Usando modo offline.');
+        firebaseReady = false;
+        loadLocalMessages();
+        return;
+    }
+    
+    try {
+        // Inicializar Firebase
+        if (window.firebaseApp.initialize) {
+            const initialized = window.firebaseApp.initialize();
+            if (initialized) {
+                firebaseReady = true;
+                firebaseInitialized = true;
+                console.log('✅ Firebase inicializado com sucesso');
+            }
+        }
+        
+        // Configurar listener para mudanças de status
+        setupFirebaseStatusListener();
+        
+        // Carregar mensagens iniciais
+        loadFirebaseMessages();
+        
+    } catch (error) {
+        console.error('❌ Erro na inicialização do Firebase:', error);
+        firebaseReady = false;
+        showNotification('📱 Modo offline ativado. Suas mensagens serão salvas localmente.');
+        loadLocalMessages();
+    }
+}
+
+// ===== CONFIGURAR LISTENER DE STATUS DO FIREBASE =====
+function setupFirebaseStatusListener() {
+    // Verificar periodicamente o status
+    setInterval(() => {
+        if (window.firebaseApp && window.firebaseApp.isConnected) {
+            const isConn = window.firebaseApp.isConnected();
+            if (isConn !== firebaseReady) {
+                firebaseReady = isConn;
+                console.log(firebaseReady ? '✅ Firebase conectado' : '⚠️ Firebase desconectado');
+                
+                if (firebaseReady) {
+                    // Sincronizar mensagens offline
+                    syncOfflineMessages();
+                    // Recarregar mensagens
+                    loadFirebaseMessages();
+                }
+            }
+        }
+    }, 5000);
+}
+
+// ===== CARREGAR MENSAGENS DO FIREBASE =====
+function loadFirebaseMessages() {
+    if (!window.firebaseApp || !window.firebaseApp.loadMessages) {
+        console.error('❌ Firebase não disponível para carregar mensagens');
+        loadLocalMessages();
+        return;
+    }
+    
+    try {
+        // Cancelar listener anterior se existir
+        if (messagesUnsubscribe && typeof messagesUnsubscribe === 'function') {
+            messagesUnsubscribe();
+        }
+        
+        // Carregar mensagens do Firestore
+        messagesUnsubscribe = window.firebaseApp.loadMessages((messages) => {
+            console.log(`📥 ${messages.length} mensagens recebidas do Firebase`);
+            
+            // Combinar com mensagens offline
+            const allMessages = [...messages];
+            
+            // Adicionar mensagens offline que não estão na lista
+            offlineMessages.forEach(offlineMsg => {
+                const alreadyExists = allMessages.some(msg => 
+                    msg.localSaved && msg.id === offlineMsg.id
+                );
+                if (!alreadyExists) {
+                    allMessages.unshift(offlineMsg);
+                }
+            });
+            
+            // Ordenar por timestamp (mais recente primeiro)
+            allMessages.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            
+            wallMessages = allMessages;
+            createMessageWall();
+            
+            // Sincronizar mensagens offline se houver conexão
+            if (firebaseReady && offlineMessages.length > 0) {
+                setTimeout(() => syncOfflineMessages(), 2000);
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao carregar mensagens do Firebase:', error);
+        loadLocalMessages();
+    }
+}
+
+// ===== CARREGAR MENSAGENS LOCAIS =====
+function loadLocalMessages() {
+    if (window.firebaseApp && window.firebaseApp.loadFromLocalStorage) {
+        window.firebaseApp.loadFromLocalStorage((messages) => {
+            console.log(`📱 ${messages.length} mensagens carregadas do localStorage`);
+            wallMessages = messages;
+            createMessageWall();
+        });
+    } else {
+        // Fallback manual
+        try {
+            const savedMessages = JSON.parse(localStorage.getItem('loveMessages_offline')) || [];
+            console.log(`📱 ${savedMessages.length} mensagens carregadas do localStorage`);
+            wallMessages = savedMessages;
+            createMessageWall();
+        } catch (e) {
+            console.error('❌ Erro ao carregar mensagens locais:', e);
+            wallMessages = [];
+            createMessageWall();
+        }
+    }
+}
+
+// ===== SALVAR MENSAGEM (COM FALLBACK) =====
+async function saveMessageToCloud(messageData) {
+    // Adicionar timestamp
+    const messageWithTimestamp = {
+        ...messageData,
+        timestamp: Date.now()
+    };
+    
+    // Se o Firebase estiver pronto, tentar salvar na nuvem
+    if (firebaseReady && window.firebaseApp && window.firebaseApp.addMessage) {
+        try {
+            showNotification('💾 Salvando mensagem no mural...');
+            
+            const result = await window.firebaseApp.addMessage(messageWithTimestamp);
+            
+            if (result && result.success) {
+                console.log('✅ Mensagem salva no Firebase:', result.messageId);
+                
+                // Recarregar mensagens para atualizar a interface
+                setTimeout(() => loadFirebaseMessages(), 1000);
+                
+                return {
+                    success: true,
+                    messageId: result.messageId,
+                    source: 'firebase'
+                };
+            }
+        } catch (error) {
+            console.error('❌ Erro ao salvar no Firebase:', error);
+            // Continuar para salvar localmente
+        }
+    }
+    
+    // Salvar localmente como fallback
+    const localId = saveMessageLocally(messageWithTimestamp);
+    
+    return {
+        success: true,
+        messageId: localId,
+        source: 'local'
+    };
+}
+
+// ===== SALVAR MENSAGEM LOCALMENTE =====
+function saveMessageLocally(messageData) {
+    try {
+        const localMessage = {
+            ...messageData,
+            id: `local_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            localSaved: true,
+            localTimestamp: new Date().toISOString(),
+            syncStatus: 'pending'
+        };
+        
+        // Adicionar ao array de mensagens offline
+        offlineMessages.unshift(localMessage);
+        
+        // Salvar no localStorage
+        const savedMessages = JSON.parse(localStorage.getItem('loveMessages_offline')) || [];
+        savedMessages.unshift(localMessage);
+        
+        // Limitar a 100 mensagens
+        if (savedMessages.length > 100) {
+            savedMessages.length = 100;
+        }
+        
+        localStorage.setItem('loveMessages_offline', JSON.stringify(savedMessages));
+        
+        // Atualizar mural imediatamente
+        wallMessages.unshift(localMessage);
+        createMessageWall();
+        
+        console.log('📱 Mensagem salva localmente:', localMessage.id);
+        
+        return localMessage.id;
+        
+    } catch (e) {
+        console.error('❌ Erro ao salvar localmente:', e);
+        showNotification('⚠️ Erro ao salvar a mensagem. Tente novamente.');
+        return null;
+    }
+}
+
+// ===== SINCRONIZAR MENSAGENS OFFLINE =====
+async function syncOfflineMessages() {
+    if (!firebaseReady || !window.firebaseApp || !window.firebaseApp.syncOfflineMessages) {
+        console.log('⚠️ Firebase não disponível para sincronização');
+        return;
+    }
+    
+    try {
+        if (offlineMessages.length > 0) {
+            console.log(`🔄 Sincronizando ${offlineMessages.length} mensagens offline...`);
+            await window.firebaseApp.syncOfflineMessages();
+            
+            // Recarregar mensagens após sincronização
+            setTimeout(() => loadFirebaseMessages(), 1000);
+        }
+    } catch (error) {
+        console.error('❌ Erro na sincronização:', error);
+    }
+}
+
+// ===== CARREGAR MENSAGENS OFFLINE AO INICIAR =====
+function loadOfflineMessages() {
+    try {
+        const savedMessages = JSON.parse(localStorage.getItem('loveMessages_offline')) || [];
+        offlineMessages.length = 0; // Limpar array
+        offlineMessages.push(...savedMessages);
+        console.log(`📱 ${savedMessages.length} mensagens offline carregadas`);
+        
+        return savedMessages;
+    } catch (e) {
+        console.error('❌ Erro ao carregar mensagens offline:', e);
+        return [];
+    }
+}
+
+// ===== MURAL DE MENSAGENS =====
+function initializeMessageWall() {
+    console.log('💌 Inicializando mural de mensagens...');
+    
+    // Configurar botão de adicionar mensagem
+    const addMessageBtn = document.getElementById('addMessageBtn');
+    const addMessageModal = document.getElementById('addMessageModal');
+    const cancelMessageBtn = document.getElementById('cancelMessageBtn');
+    const newMessageForm = document.getElementById('newMessageForm');
+    const closeModal = addMessageModal.querySelector('.close-modal');
+    
+    if (addMessageBtn && addMessageModal) {
+        addMessageBtn.addEventListener('click', () => {
+            addMessageModal.classList.add('active');
+            // Preencher data atual por padrão
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('messageDate').value = today;
+            // Selecionar primeira cor por padrão
+            const firstColor = document.querySelector('.color-option');
+            if (firstColor) {
+                firstColor.classList.add('active');
+            }
+            // Preencher autor com valor padrão
+            document.getElementById('messageAuthor').value = 'Seu Amor';
+        });
+        
+        closeModal.addEventListener('click', () => {
+            addMessageModal.classList.remove('active');
+            newMessageForm.reset();
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+        });
+        
+        cancelMessageBtn.addEventListener('click', () => {
+            addMessageModal.classList.remove('active');
+            newMessageForm.reset();
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+        });
+        
+        addMessageModal.addEventListener('click', (e) => {
+            if (e.target === addMessageModal) {
+                addMessageModal.classList.remove('active');
+                newMessageForm.reset();
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+            }
+        });
+        
+        // Selecionar cor
+        document.querySelectorAll('.color-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        // Formulário de nova mensagem
+        newMessageForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('messageTitle').value;
+            const content = document.getElementById('messageContent').value;
+            const dateInput = document.getElementById('messageDate').value;
+            const selectedColor = document.querySelector('.color-option.active')?.dataset.color || '#ffebee';
+            const author = document.getElementById('messageAuthor').value || 'Anônimo';
+            
+            // Formatar data
+            let formattedDate;
+            if (dateInput) {
+                const date = new Date(dateInput);
+                formattedDate = date.toLocaleDateString('pt-BR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            } else {
+                formattedDate = new Date().toLocaleDateString('pt-BR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            }
+            
+            // Criar objeto da mensagem
+            const newMessage = {
+                title: title,
+                content: content,
+                date: formattedDate,
+                color: selectedColor,
+                author: author
+            };
+            
+            try {
+                // Fechar modal
+                addMessageModal.classList.remove('active');
+                newMessageForm.reset();
+                document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));
+                
+                // Salvar mensagem
+                const result = await saveMessageToCloud(newMessage);
+                
+                if (result.success) {
+                    if (result.source === 'firebase') {
+                        showNotification('💌 Mensagem salva no mural!');
+                    } else {
+                        showNotification('📱 Mensagem salva localmente! Será sincronizada quando a conexão voltar.');
+                    }
+                    createHeartExplosion();
+                } else {
+                    showNotification('❌ Erro ao salvar a mensagem. Tente novamente.');
+                }
+                
+            } catch (error) {
+                console.error('❌ Erro ao processar mensagem:', error);
+                showNotification('❌ Erro ao processar a mensagem.');
+            }
+        });
+    }
+    
+    // Configurar navegação do mural
+    setupWallNavigation();
+    
+    // Mostrar estado inicial do mural
+    createMessageWall();
+}
+
+// ===== FUNÇÃO PARA ATUALIZAR MURAL =====
+window.updateMessageWall = function(messages) {
+    console.log('🔄 Atualizando mural com', messages.length, 'mensagens');
+    
+    // Combinar com mensagens offline
+    const allMessages = [...messages];
+    
+    // Adicionar mensagens offline
+    offlineMessages.forEach(offlineMsg => {
+        const exists = allMessages.some(msg => 
+            msg.id === offlineMsg.id || 
+            (msg.localSaved && msg.localTimestamp === offlineMsg.localTimestamp)
+        );
+        if (!exists) {
+            allMessages.unshift(offlineMsg);
+        }
+    });
+    
+    // Ordenar por timestamp
+    allMessages.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    
+    wallMessages = allMessages;
+    createMessageWall();
+};
+
+// ===== CRIAR MURAL VISUAL =====
+function createMessageWall() {
+    const wallContent = document.getElementById('wallContent');
+    const wallIndicators = document.getElementById('wallIndicators');
+    
+    if (!wallContent) return;
+    
+    wallContent.innerHTML = '';
+    wallIndicators.innerHTML = '';
+    
+    // Atualizar contador
+    updateMessageCount(wallMessages.length);
+    
+    if (wallMessages.length === 0) {
+        wallContent.innerHTML = `
+            <div class="empty-message">
+                <div style="font-size: 3rem; margin-bottom: 20px;">💌</div>
+                <h3>Nenhuma mensagem ainda</h3>
+                <p>Seja o primeiro a deixar uma mensagem de amor!</p>
+                <p style="margin-top: 10px; font-size: 0.9rem; opacity: 0.7;">
+                    Clique no botão "Adicionar Nova Mensagem"
+                </p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Criar cartões de mensagem
+    wallMessages.forEach((message, index) => {
+        const messageCard = document.createElement('div');
+        messageCard.className = 'message-card';
+        messageCard.style.backgroundColor = message.color || '#ffebee';
+        messageCard.dataset.index = index;
+        
+        // Verificar se é mensagem local
+        const isLocalMessage = message.localSaved || message.id?.startsWith('local_');
+        
+        // Limitar conteúdo
+        let displayContent = message.content || '';
+        if (displayContent.length > 300) {
+            displayContent = displayContent.substring(0, 300) + '...';
+        }
+        
+        messageCard.innerHTML = `
+            <div class="message-header">
+                <div class="message-date">
+                    ${message.date || 'Data não informada'}
+                    ${isLocalMessage ? ' <span style="color: #ff9800; font-size: 0.8em; margin-left: 5px;">(📱 Offline)</span>' : ''}
+                </div>
+                ${message.author ? `<span class="message-author">${message.author}</span>` : ''}
+            </div>
+            <div class="message-title">${message.title || 'Mensagem de Amor'}</div>
+            <div class="message-text">${displayContent}</div>
+            ${message.createdAt ? `<div class="message-time">Enviado em: ${formatDateTime(message.createdAt)}</div>` : 
+              isLocalMessage ? `<div class="message-time" style="color: #ff9800;">Salvo localmente: ${formatDateTime(message.localTimestamp)}</div>` : ''}
+            <div class="message-footer">Com todo meu amor 💖</div>
+        `;
+        
+        messageCard.addEventListener('click', () => {
+            if (isMobile) return;
+            showFullMessage(message);
+        });
+        
+        messageCard.style.opacity = '0';
+        messageCard.style.transform = 'translateY(20px)';
+        
+        wallContent.appendChild(messageCard);
+        
+        setTimeout(() => {
+            messageCard.style.transition = 'all 0.5s ease';
+            messageCard.style.opacity = '1';
+            messageCard.style.transform = 'translateY(0)';
+        }, index * 100);
+        
+        // Criar indicador
+        const indicator = document.createElement('div');
+        indicator.className = 'wall-indicator';
+        indicator.dataset.index = index;
+        indicator.addEventListener('click', () => {
+            goToWallMessage(index);
+        });
+        wallIndicators.appendChild(indicator);
+    });
+    
+    updateWallIndicators();
+    updateCurrentPosition();
+    updateNavButtons();
+    setupTouchEvents();
+}
+
+// ===== FUNÇÕES AUXILIARES DO MURAL =====
+function updateMessageCount(count) {
+    const countElement = document.getElementById('messageCount');
+    if (countElement) {
+        countElement.textContent = `${count} mensagem${count !== 1 ? 'es' : ''}`;
+        if (!firebaseReady && count > 0) {
+            countElement.innerHTML += ' <span style="color: #ff9800; font-size: 0.8em;">(Modo offline)</span>';
+        }
+    }
+}
+
+function setupTouchEvents() {
+    const wallScroll = document.getElementById('wallScroll');
+    if (!wallScroll || !isMobile) return;
+    
+    let startX = 0;
+    let currentX = 0;
+    let isSwiping = false;
+    
+    wallScroll.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        isSwiping = true;
+    }, { passive: true });
+    
+    wallScroll.addEventListener('touchmove', (e) => {
+        if (!isSwiping) return;
+        currentX = e.touches[0].clientX;
+        const diffX = startX - currentX;
+        
+        if (Math.abs(diffX) > 30) {
+            e.preventDefault();
+        }
+    }, { passive: false });
+    
+    wallScroll.addEventListener('touchend', () => {
+        if (!isSwiping) return;
+        
+        const diffX = startX - currentX;
+        
+        if (Math.abs(diffX) > 50) {
+            if (diffX > 0) {
+                nextWallMessage();
+            } else {
+                prevWallMessage();
+            }
+        }
+        
+        isSwiping = false;
+        startX = 0;
+        currentX = 0;
+    }, { passive: true });
+}
+
+function setupWallNavigation() {
+    const prevBtn = document.getElementById('prevWallBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const mobilePrevBtn = document.getElementById('mobilePrevBtn');
+    const mobileNextBtn = document.getElementById('mobileNextBtn');
+    
+    if (prevBtn) prevBtn.addEventListener('click', prevWallMessage);
+    if (nextBtn) nextBtn.addEventListener('click', nextWallMessage);
+    if (mobilePrevBtn) mobilePrevBtn.addEventListener('click', prevWallMessage);
+    if (mobileNextBtn) mobileNextBtn.addEventListener('click', nextWallMessage);
+    
+    // Navegação por teclado
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+        
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            prevWallMessage();
+        } else if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            nextWallMessage();
+        }
+    });
+}
+
+function prevWallMessage() {
+    if (currentWallIndex > 0) {
+        currentWallIndex--;
+        updateWallPosition();
+    }
+}
+
+function nextWallMessage() {
+    if (currentWallIndex < wallMessages.length - 1) {
+        currentWallIndex++;
+        updateWallPosition();
+    }
+}
+
+function goToWallMessage(index) {
+    if (index >= 0 && index < wallMessages.length) {
+        currentWallIndex = index;
+        updateWallPosition();
+    }
+}
+
+function updateWallPosition() {
+    const wallContent = document.getElementById('wallContent');
+    if (!wallContent || wallMessages.length === 0) return;
+    
+    const cardWidth = 320;
+    const offset = currentWallIndex * cardWidth;
+    
+    wallContent.style.transform = `translateX(-${offset}px)`;
+    
+    updateWallIndicators();
+    updateCurrentPosition();
+    updateNavButtons();
+}
+
+function updateWallIndicators() {
+    const indicators = document.querySelectorAll('.wall-indicator');
+    indicators.forEach((indicator, index) => {
+        if (index === currentWallIndex) {
+            indicator.classList.add('active');
+        } else {
+            indicator.classList.remove('active');
+        }
+    });
+}
+
+function updateCurrentPosition() {
+    const positionElement = document.getElementById('currentPosition');
+    if (positionElement && wallMessages.length > 0) {
+        positionElement.textContent = `${currentWallIndex + 1} / ${wallMessages.length}`;
+    } else if (positionElement) {
+        positionElement.textContent = '0 / 0';
+    }
+}
+
+function updateNavButtons() {
+    const prevBtn = document.getElementById('prevWallBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const mobilePrevBtn = document.getElementById('mobilePrevBtn');
+    const mobileNextBtn = document.getElementById('mobileNextBtn');
+    
+    if (prevBtn) prevBtn.disabled = currentWallIndex === 0;
+    if (nextBtn) nextBtn.disabled = currentWallIndex === wallMessages.length - 1;
+    if (mobilePrevBtn) mobilePrevBtn.disabled = currentWallIndex === 0;
+    if (mobileNextBtn) mobileNextBtn.disabled = currentWallIndex === wallMessages.length - 1;
+}
+
+function formatDateTime(dateString) {
+    try {
+        if (!dateString) return 'Data desconhecida';
+        
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return 'Data inválida';
+        
+        return date.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (e) {
+        return 'Data desconhecida';
+    }
+}
+
+function showFullMessage(message) {
+    const modal = document.createElement('div');
+    modal.className = 'full-message-modal';
+    modal.innerHTML = `
+        <div class="modal-content" style="background: ${message.color || '#ffebee'}">
+            <span class="close-modal">&times;</span>
+            <div class="message-header">
+                <div class="message-date">
+                    ${message.date || 'Data não informada'}
+                    ${message.localSaved ? ' <span style="color: #ff9800; font-size: 0.9em;">(📱 Mensagem Offline)</span>' : ''}
+                </div>
+                ${message.author ? `<span class="message-author">${message.author}</span>` : ''}
+            </div>
+            <h3>${message.title || 'Mensagem de Amor'}</h3>
+            <div class="full-message-text">${message.content || ''}</div>
+            ${message.createdAt ? `<div class="message-time">Enviado em: ${formatDateTime(message.createdAt)}</div>` : 
+              message.localSaved ? `<div class="message-time" style="color: #ff9800;">Salvo localmente em: ${formatDateTime(message.localTimestamp)}</div>` : ''}
+            <div class="message-footer">Com todo meu amor 💖</div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    const style = document.createElement('style');
+    style.textContent = `
+        .full-message-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9998;
+            padding: 20px;
+            animation: fadeIn 0.3s ease-out;
+        }
+        .full-message-modal .modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            animation: slideInUp 0.3s ease-out;
+        }
+        .full-message-text {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin: 20px 0;
+            color: var(--text-color);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .full-message-modal .close-modal {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 24px;
+            color: var(--text-color);
+            cursor: pointer;
+            background: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            border-radius: 50%;
+        }
+        .full-message-modal .close-modal:hover {
+            color: var(--primary-color);
+            background: var(--glass-bg);
+        }
+    `;
+    document.head.appendChild(style);
+    
+    modal.querySelector('.close-modal').onclick = () => {
+        modal.remove();
+        style.remove();
+    };
+    
+    modal.onclick = (e) => {
+        if (e.target === modal) {
+            modal.remove();
+            style.remove();
+        }
+    };
+}
 
 // ===== MANIPULAÇÃO DE RESIZE =====
 function handleResize() {
@@ -198,8 +976,7 @@ function handleResize() {
     isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (wasMobile !== isMobile) {
-        console.log(`📱 Modo alterado para: ${isMobile ? 'Mobile' : 'Desktop'}`);
-        location.reload(); // Recarregar para ajustar interface
+        // Recalcular layout se necessário
     }
     
     const cursor = document.getElementById('customCursor');
@@ -210,18 +987,10 @@ function handleResize() {
     }
     
     CONFIG.hearts.maxHearts = isMobile ? 15 : 20;
-    
-    // Atualizar visualizador se existir
-    if (audioCanvasCtx) {
-        drawAudioVisualizer();
-    }
 }
 
 // ===== SETUP DE INTERAÇÃO DO USUÁRIO =====
 function setupUserInteraction() {
-    console.log('🔄 Configurando interação do usuário...');
-    
-    // Eventos para detectar interação do usuário
     const interactionEvents = ['click', 'touchstart', 'touchend', 'keydown', 'mousedown'];
     
     interactionEvents.forEach(eventType => {
@@ -245,7 +1014,7 @@ function setupUserInteraction() {
             
             if (audioPlayer && !isPlaying) {
                 playCurrentTrack();
-                this.classList.remove('show'); // Esconder após clicar
+                this.classList.remove('show');
             }
         });
     }
@@ -255,22 +1024,12 @@ function handleUserInteraction() {
     if (!userInteracted) {
         userInteracted = true;
         audioUnlocked = true;
-        console.log('✅ Usuário interagiu - áudio desbloqueado');
         
-        // Esconder botão mobile após interação
         const mobileBtn = document.getElementById('mobilePlayButton');
         if (mobileBtn) {
             mobileBtn.classList.remove('show');
         }
         
-        // Se tiver AudioContext suspenso, retomar
-        if (audioContext && audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                console.log('✅ AudioContext retomado');
-            });
-        }
-        
-        // Mostrar mensagem amigável
         showNotification('🎵 Áudio liberado! Clique em Play para ouvir');
     }
 }
@@ -278,66 +1037,40 @@ function handleUserInteraction() {
 function showAudioPermissionOverlay() {
     if (!isMobile) return;
     
-    console.log('🛡️ Mostrando overlay de permissão de áudio...');
-    
-    // Remover overlay existente
     const existingOverlay = document.querySelector('.audio-permission-overlay');
     if (existingOverlay) existingOverlay.remove();
     
-    // Criar overlay
     const overlay = document.createElement('div');
     overlay.className = 'audio-permission-overlay';
     overlay.innerHTML = `
         <div class="permission-content">
             <div style="font-size: 3rem; margin-bottom: 20px;">🔊</div>
             <h2>Permitir Áudio</h2>
-            <p>
-                Para ouvir as músicas do nosso amor, 
-                precisamos da sua permissão para reproduzir áudio.
-                Toque no botão abaixo para permitir.
-            </p>
-            <button class="permission-btn" id="allowAudioBtn">
-                Permitir Reprodução de Áudio
-            </button>
-            <p style="margin-top: 15px; font-size: 0.9rem; opacity: 0.7;">
-                Após permitir, clique em Play para começar
-            </p>
+            <p>Para ouvir as músicas do nosso amor, precisamos da sua permissão para reproduzir áudio.</p>
+            <button class="permission-btn" id="allowAudioBtn">Permitir Reprodução de Áudio</button>
         </div>
     `;
     
     document.body.appendChild(overlay);
     
-    // Configurar botão de permissão
     overlay.querySelector('#allowAudioBtn').addEventListener('click', function(e) {
         e.stopPropagation();
         
-        // Criar áudio silencioso para "enganar" o navegador
         const silentAudio = new Audio();
         silentAudio.volume = 0.001;
         
-        // Tentar reproduzir para desbloquear
         silentAudio.play().then(() => {
-            console.log('✅ Permissão de áudio concedida');
             audioUnlocked = true;
             userInteracted = true;
-            
-            // Parar áudio silencioso
             silentAudio.pause();
             silentAudio.currentTime = 0;
-            
-            // Remover overlay
             overlay.remove();
-            
-            // Mostrar notificação
             showNotification('✅ Áudio liberado! Agora clique em Play');
-            
         }).catch(error => {
-            console.error('❌ Falha ao obter permissão:', error);
             showNotification('❌ Não foi possível obter permissão. Tente novamente.');
         });
     });
     
-    // Fechar overlay ao clicar fora
     overlay.addEventListener('click', function(e) {
         if (e.target === overlay) {
             overlay.remove();
@@ -350,6 +1083,8 @@ function initializeCursor() {
     if (isMobile) return;
     
     const cursor = document.getElementById('customCursor');
+    if (!cursor) return;
+    
     cursor.style.display = 'block';
     
     document.addEventListener('mousemove', (e) => {
@@ -381,6 +1116,8 @@ function initializeCursor() {
 // ===== CORAÇÕES FLUTUANTES =====
 function initializeHearts() {
     const container = document.getElementById('hearts-container');
+    if (!container) return;
+    
     container.innerHTML = '';
     
     const initialHearts = isMobile ? CONFIG.hearts.maxHearts / 2 : CONFIG.hearts.maxHearts;
@@ -394,6 +1131,7 @@ function initializeHearts() {
 
 function createFloatingHeart() {
     const container = document.getElementById('hearts-container');
+    if (!container) return;
     
     if (container.children.length >= CONFIG.hearts.maxHearts * 2) {
         const excess = container.children.length - CONFIG.hearts.maxHearts;
@@ -502,7 +1240,6 @@ function toggleTheme() {
 
 function enableDarkMode() {
     document.documentElement.classList.add('dark-mode');
-    document.documentElement.classList.remove('light-mode');
     isDarkMode = true;
     
     const icon = document.querySelector('#themeToggle i');
@@ -514,7 +1251,6 @@ function enableDarkMode() {
 }
 
 function enableLightMode() {
-    document.documentElement.classList.add('light-mode');
     document.documentElement.classList.remove('dark-mode');
     isDarkMode = false;
     
@@ -530,22 +1266,15 @@ function enableLightMode() {
 function initializeGarden() {
     console.log('🌹 Inicializando jardim das rosas...');
     
-    // Carregar dados salvos
     loadGardenData();
-    
-    // Criar rosas
     createRoses();
     
-    // Configurar botão de regar
     const waterBtn = document.getElementById('waterGarden');
     if (waterBtn) {
         waterBtn.addEventListener('click', waterGarden);
     }
     
-    // Atualizar estatísticas
     updateGardenStats();
-    
-    // Atualizar crescimento da rosa especial
     updateRoseGrowth();
 }
 
@@ -557,13 +1286,11 @@ function loadGardenData() {
             CONFIG.garden.lastWatered = savedGarden.lastWatered || CONFIG.garden.lastWatered;
             CONFIG.garden.specialRoseIndex = savedGarden.specialRoseIndex || CONFIG.garden.specialRoseIndex;
             
-            // Verificar se pode crescer desde a última rega
             if (CONFIG.garden.lastWatered) {
                 const lastWateredDate = new Date(CONFIG.garden.lastWatered);
                 const now = new Date();
                 const hoursSinceWater = (now - lastWateredDate) / (1000 * 60 * 60);
                 
-                // Se passou mais de 24 horas, perder um pouco de crescimento
                 if (hoursSinceWater > 24 && CONFIG.garden.roseGrowth > 0) {
                     CONFIG.garden.roseGrowth = Math.max(0, CONFIG.garden.roseGrowth - 5);
                     saveGardenData();
@@ -593,11 +1320,6 @@ function createRoses() {
     
     gardenContainer.innerHTML = '';
     
-    // Se não tiver mensagens suficientes, criar algumas padrão
-    while (CONFIG.garden.roseMessages.length < CONFIG.garden.totalRoses) {
-        CONFIG.garden.roseMessages.push(`Rosa do Amor ${CONFIG.garden.roseMessages.length + 1}`);
-    }
-    
     for (let i = 0; i < CONFIG.garden.totalRoses; i++) {
         const isSpecial = i === CONFIG.garden.specialRoseIndex;
         
@@ -605,7 +1327,6 @@ function createRoses() {
         roseItem.className = 'rose-item';
         roseItem.dataset.index = i;
         
-        // Posição aleatória para as folhas
         const leafLeft = Math.random() * 15 + 10;
         const leafRight = Math.random() * 15 + 10;
         
@@ -616,33 +1337,30 @@ function createRoses() {
             <div class="rose-stem"></div>
             <div class="rose-leaf left" style="bottom: ${leafLeft}px;"></div>
             <div class="rose-leaf right" style="bottom: ${leafRight}px;"></div>
-            <div class="rose-tooltip">${CONFIG.garden.roseMessages[i]}</div>
+            <div class="rose-tooltip">${CONFIG.garden.roseMessages[i] || `Rosa ${i + 1}`}</div>
         `;
         
-        // Adicionar evento de clique
         roseItem.addEventListener('click', () => onRoseClick(i, isSpecial));
         
-        // Adicionar animação de entrada
         roseItem.style.opacity = '0';
         roseItem.style.transform = 'translateY(20px)';
+        
+        gardenContainer.appendChild(roseItem);
         
         setTimeout(() => {
             roseItem.style.transition = 'all 0.5s ease';
             roseItem.style.opacity = '1';
             roseItem.style.transform = 'translateY(0)';
         }, i * 100);
-        
-        gardenContainer.appendChild(roseItem);
     }
 }
 
 function onRoseClick(index, isSpecial) {
-    const message = CONFIG.garden.roseMessages[index];
+    const message = CONFIG.garden.roseMessages[index] || `Rosa ${index + 1}`;
     
     if (isSpecial) {
         showNotification(`💖 ${message} - Nossa rosa mais especial!`);
         
-        // Criar efeito de brilho na rosa especial
         const specialRose = document.querySelector(`.rose-item[data-index="${index}"] .rose`);
         if (specialRose) {
             specialRose.style.animation = 'none';
@@ -651,7 +1369,6 @@ function onRoseClick(index, isSpecial) {
             }, 10);
         }
         
-        // Mostrar mensagem especial
         const specialMessage = document.getElementById('specialRoseMessage');
         if (specialMessage) {
             const specialMessages = [
@@ -667,7 +1384,6 @@ function onRoseClick(index, isSpecial) {
         showNotification(`🌹 ${message}`);
     }
     
-    // Efeito visual no clique
     createRoseClickEffect(index);
 }
 
@@ -675,7 +1391,6 @@ function createRoseClickEffect(index) {
     const roseItem = document.querySelector(`.rose-item[data-index="${index}"]`);
     if (!roseItem) return;
     
-    // Criar partículas de pétalas
     for (let i = 0; i < 5; i++) {
         setTimeout(() => {
             const petal = document.createElement('div');
@@ -696,7 +1411,6 @@ function createRoseClickEffect(index) {
             petal.style.left = startX + 'px';
             petal.style.top = startY + 'px';
             
-            // Animação única para cada pétala
             petal.style.setProperty('--end-x', (Math.random() * 100 - 50) + 'px');
             petal.style.setProperty('--end-y', (Math.random() * 100 - 150) + 'px');
             
@@ -712,7 +1426,6 @@ function createRoseClickEffect(index) {
 }
 
 function waterGarden() {
-    // Verificar se já regou hoje
     const lastWatered = CONFIG.garden.lastWatered ? new Date(CONFIG.garden.lastWatered) : null;
     const today = new Date();
     
@@ -725,27 +1438,19 @@ function waterGarden() {
         return;
     }
     
-    // Aumentar crescimento da rosa especial
     CONFIG.garden.roseGrowth = Math.min(100, CONFIG.garden.roseGrowth + 10);
     CONFIG.garden.lastWatered = today.toISOString();
     
-    // Salvar dados
     saveGardenData();
-    
-    // Atualizar interface
     updateRoseGrowth();
     updateGardenStats();
-    
-    // Efeito visual de regar
     createWaterEffect();
     
-    // Atualizar mensagem baseada no crescimento
     const growth = CONFIG.garden.roseGrowth;
     let message = '';
     
     if (growth >= 100) {
         message = '🎉 Nossa rosa dourada está completamente crescida! Amor perfeito!';
-        // Desbloquear algo especial
         unlockGardenAchievement();
     } else if (growth >= 75) {
         message = '🌺 Nossa rosa especial está quase totalmente crescida!';
@@ -758,8 +1463,6 @@ function waterGarden() {
     }
     
     showNotification(`💧 Jardim regado! ${message}`);
-    
-    // Animação nas rosas
     animateRosesAfterWatering();
 }
 
@@ -767,12 +1470,10 @@ function createWaterEffect() {
     const gardenContainer = document.getElementById('gardenContainer');
     if (!gardenContainer) return;
     
-    // Criar múltiplos efeitos de água
     for (let i = 0; i < 3; i++) {
         const waterEffect = document.createElement('div');
         waterEffect.className = 'water-effect';
         
-        // Posição aleatória
         const rect = gardenContainer.getBoundingClientRect();
         const x = rect.left + Math.random() * rect.width;
         const y = rect.top + Math.random() * rect.height;
@@ -782,7 +1483,6 @@ function createWaterEffect() {
         
         document.body.appendChild(waterEffect);
         
-        // Remover após animação
         setTimeout(() => {
             if (waterEffect.parentNode) {
                 waterEffect.remove();
@@ -798,10 +1498,8 @@ function animateRosesAfterWatering() {
         setTimeout(() => {
             rose.style.transform = 'translateY(-10px)';
             
-            // Adicionar efeito de brilho temporário
             const roseIcon = rose.querySelector('.rose');
             if (roseIcon) {
-                const originalClass = roseIcon.className;
                 roseIcon.style.filter = 'brightness(1.3)';
                 
                 setTimeout(() => {
@@ -824,7 +1522,6 @@ function updateRoseGrowth() {
     if (progressFill) {
         progressFill.style.width = `${CONFIG.garden.roseGrowth}%`;
         
-        // Mudar cor baseada no crescimento
         if (CONFIG.garden.roseGrowth >= 75) {
             progressFill.style.background = 'linear-gradient(90deg, #4CAF50, #8BC34A)';
         } else if (CONFIG.garden.roseGrowth >= 50) {
@@ -836,19 +1533,16 @@ function updateRoseGrowth() {
 }
 
 function updateGardenStats() {
-    // Atualizar contador de rosas
     const totalRoses = document.getElementById('totalRoses');
     if (totalRoses) {
         totalRoses.textContent = CONFIG.garden.totalRoses;
     }
     
-    // Atualizar contador de rosas especiais
     const specialRoses = document.getElementById('specialRoses');
     if (specialRoses) {
         specialRoses.textContent = '1';
     }
     
-    // Atualizar contador de dias crescendo
     const daysGrowing = document.getElementById('daysGrowing');
     if (daysGrowing && CONFIG.startDate) {
         const startDate = new Date(CONFIG.startDate);
@@ -859,16 +1553,13 @@ function updateGardenStats() {
 }
 
 function unlockGardenAchievement() {
-    // Quando a rosa chega a 100%, desbloquear algo especial
     showNotification('🏆 Conquista desbloqueada: Jardineiro do Amor!');
     
-    // Pode adicionar uma nova rosa especial, desbloquear música, etc.
     const specialMessage = document.getElementById('specialRoseMessage');
     if (specialMessage) {
         specialMessage.textContent = '✨ Nossa rosa dourada está perfeita! Ela desbloqueou uma surpresa especial para nós! ✨';
     }
     
-    // Criar uma explosão de pétalas
     createPetalExplosion();
 }
 
@@ -886,14 +1577,12 @@ function createPetalExplosion() {
                 animation: petalExplosion 2s ease-out forwards;
             `;
             
-            // Posição inicial no centro
             const startX = window.innerWidth / 2;
             const startY = window.innerHeight / 2;
             
             petal.style.left = startX + 'px';
             petal.style.top = startY + 'px';
             
-            // Posição final aleatória
             const angle = Math.random() * Math.PI * 2;
             const distance = 200 + Math.random() * 300;
             const endX = Math.cos(angle) * distance;
@@ -913,20 +1602,59 @@ function createPetalExplosion() {
     }
 }
 
+// ===== GALERIA DE FOTOS =====
+function loadGallery() {
+    const photoGrid = document.getElementById('photoGrid');
+    if (!photoGrid) return;
+    
+    photoGrid.innerHTML = '';
+    
+    CONFIG.photos.forEach(photo => {
+        const photoItem = document.createElement('div');
+        photoItem.className = 'photo-item';
+        
+        photoItem.innerHTML = `
+            <div class="image-container">
+                <img 
+                    src="${photo.src}" 
+                    alt="${photo.alt}"
+                    class="gallery-image"
+                    loading="lazy"
+                    onerror="handleImageError(this, '${photo.fallback || '💖'}')"
+                >
+                <div class="image-fallback" style="display: none;">
+                    ${photo.fallback || '💕'} ${photo.alt}
+                </div>
+            </div>
+            <div class="photo-overlay">
+                <p class="photo-description">${photo.description}</p>
+            </div>
+        `;
+        
+        photoItem.addEventListener('click', () => {
+            openPhotoModal(photo.src, photo.alt, photo.description);
+        });
+        
+        photoGrid.appendChild(photoItem);
+    });
+}
+
+// Função para tratar erro de imagem
+window.handleImageError = function(imgElement, fallbackEmoji) {
+    imgElement.style.display = 'none';
+    const fallbackDiv = imgElement.nextElementSibling;
+    if (fallbackDiv && fallbackDiv.classList.contains('image-fallback')) {
+        fallbackDiv.style.display = 'flex';
+        fallbackDiv.innerHTML = `${fallbackEmoji} ${imgElement.alt}`;
+    }
+};
+
 // ===== PLAYER DE ÁUDIO HTML5 =====
 function initializeAudioPlayer() {
-    console.log('🎵 Inicializando Player de Áudio...');
-    
-    // Criar elemento de áudio
     createAudioElement();
-    
-    // Carregar playlist
     loadPlaylist();
-    
-    // Configurar controles
     setupPlayerControls();
     
-    // Configurar toggle do player
     const playerToggle = document.getElementById('playerToggle');
     const playerContent = document.getElementById('playerContent');
     
@@ -938,14 +1666,8 @@ function initializeAudioPlayer() {
         });
     }
     
-    // Criar visualizador de áudio (só em desktop)
-    if (!isMobile) {
-        createAudioVisualizer();
-    }
-    
-    // Carregar primeira música (mas não tocar automaticamente)
     if (CONFIG.musicPlaylist.length > 0) {
-        loadTrack(currentTrackIndex, false); // false = não tocar automaticamente
+        loadTrack(currentTrackIndex, false);
         updateCurrentSongInfo();
     } else {
         showNotification('Adicione músicas na playlist!');
@@ -953,25 +1675,18 @@ function initializeAudioPlayer() {
 }
 
 function createAudioElement() {
-    console.log('🎧 Criando elemento de áudio...');
-    
-    // Criar elemento de áudio
     audioPlayer = document.createElement('audio');
     audioPlayer.id = 'audio-player';
     audioPlayer.preload = 'auto';
     audioPlayer.crossOrigin = 'anonymous';
-    
-    // IMPORTANTE para mobile
     audioPlayer.controls = false;
-    audioPlayer.autoplay = false; // Nunca autoplay
+    audioPlayer.autoplay = false;
     
-    // Adicionar ao player-content
     const playerContent = document.getElementById('playerContent');
     if (playerContent) {
         playerContent.insertBefore(audioPlayer, playerContent.firstChild);
     }
     
-    // Configurar eventos do áudio
     audioPlayer.addEventListener('canplay', onAudioReady);
     audioPlayer.addEventListener('play', onAudioPlay);
     audioPlayer.addEventListener('pause', onAudioPause);
@@ -979,120 +1694,19 @@ function createAudioElement() {
     audioPlayer.addEventListener('error', onAudioError);
     audioPlayer.addEventListener('timeupdate', onAudioTimeUpdate);
     audioPlayer.addEventListener('loadedmetadata', onAudioMetadataLoaded);
-    
-    // Evento específico para quando dados são carregados
     audioPlayer.addEventListener('loadeddata', function() {
-        console.log('✅ Dados de áudio carregados');
         playerReady = true;
         enableControls(true);
     });
     
-    // Configurar volume inicial
     audioPlayer.volume = audioVolume;
-    
-    console.log('✅ Elemento de áudio criado com sucesso!');
-}
-
-function createAudioVisualizer() {
-    if (isMobile) return;
-    
-    // Criar canvas para visualizador
-    audioCanvas = document.createElement('canvas');
-    audioCanvas.id = 'audio-visualizer';
-    audioCanvas.width = 300;
-    audioCanvas.height = 60;
-    audioCanvas.style.cssText = `
-        width: 100%;
-        height: 60px;
-        background: transparent;
-        margin: 10px 0;
-        border-radius: 5px;
-        display: block;
-    `;
-    
-    // Adicionar ao controls-bottom
-    const controlsBottom = document.querySelector('.controls-bottom');
-    if (controlsBottom) {
-        controlsBottom.insertBefore(audioCanvas, controlsBottom.firstChild);
-    }
-    
-    // Obter contexto
-    audioCanvasCtx = audioCanvas.getContext('2d');
-    
-    // Inicializar Web Audio API se suportado
-    if (window.AudioContext || window.webkitAudioContext) {
-        try {
-            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-            audioContext = new AudioContextClass();
-            
-            // Criar analyser node
-            audioAnalyser = audioContext.createAnalyser();
-            audioAnalyser.fftSize = 256;
-            
-            // Criar source
-            if (audioPlayer) {
-                sourceNode = audioContext.createMediaElementSource(audioPlayer);
-                sourceNode.connect(audioAnalyser);
-                audioAnalyser.connect(audioContext.destination);
-                
-                // Iniciar animação do visualizador
-                requestAnimationFrame(drawAudioVisualizer);
-                
-                console.log('✅ Visualizador de áudio inicializado!');
-            }
-        } catch (error) {
-            console.warn('⚠️ Não foi possível inicializar o visualizador:', error);
-        }
-    }
-}
-
-function drawAudioVisualizer() {
-    if (!audioAnalyser || !audioCanvasCtx || !audioPlayer || audioPlayer.paused || isMobile) {
-        requestAnimationFrame(drawAudioVisualizer);
-        return;
-    }
-    
-    const bufferLength = audioAnalyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    audioAnalyser.getByteFrequencyData(dataArray);
-    
-    audioCanvasCtx.clearRect(0, 0, audioCanvas.width, audioCanvas.height);
-    
-    const barWidth = (audioCanvas.width / bufferLength) * 2.5;
-    let barHeight;
-    let x = 0;
-    
-    const primaryColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
-    
-    for (let i = 0; i < bufferLength; i++) {
-        barHeight = dataArray[i] / 2;
-        
-        const gradient = audioCanvasCtx.createLinearGradient(0, 0, 0, audioCanvas.height);
-        gradient.addColorStop(0, primaryColor);
-        gradient.addColorStop(1, '#ff9a9e');
-        
-        audioCanvasCtx.fillStyle = gradient;
-        
-        audioCanvasCtx.fillRect(
-            x, 
-            audioCanvas.height - barHeight, 
-            barWidth, 
-            barHeight
-        );
-        
-        x += barWidth + 1;
-    }
-    
-    requestAnimationFrame(drawAudioVisualizer);
 }
 
 function onAudioReady() {
-    console.log('✅ Áudio pronto para tocar!');
     playerReady = true;
     enableControls(true);
     updateProgressBar();
     
-    // Atualizar tempo total
     const durationElement = document.getElementById('duration');
     if (durationElement && audioPlayer.duration) {
         durationElement.textContent = formatTime(audioPlayer.duration);
@@ -1100,7 +1714,6 @@ function onAudioReady() {
 }
 
 function onAudioPlay() {
-    console.log('▶️ Áudio iniciado');
     isPlaying = true;
     
     const playBtn = document.getElementById('playBtn');
@@ -1109,21 +1722,13 @@ function onAudioPlay() {
         playBtn.title = 'Pausar';
     }
     
-    // Iniciar intervalo para atualizar barra de progresso
     if (updateInterval) clearInterval(updateInterval);
     updateInterval = setInterval(updateProgressBar, 100);
     
-    // Mostrar visualizador se não for mobile
-    if (audioCanvas && !isMobile) {
-        audioCanvas.style.display = 'block';
-    }
-    
-    // Atualizar playlist UI
     updatePlaylistUI();
 }
 
 function onAudioPause() {
-    console.log('⏸️ Áudio pausado');
     isPlaying = false;
     
     const playBtn = document.getElementById('playBtn');
@@ -1132,51 +1737,35 @@ function onAudioPause() {
         playBtn.title = 'Reproduzir';
     }
     
-    // Parar intervalo
     if (updateInterval) {
         clearInterval(updateInterval);
         updateInterval = null;
     }
     
-    // Atualizar playlist UI
     updatePlaylistUI();
 }
 
 function onAudioEnded() {
-    console.log('⏹️ Música terminada - NÃO passando automaticamente para próxima');
     isPlaying = false;
     
-    // Atualizar botão de play
     const playBtn = document.getElementById('playBtn');
     if (playBtn) {
         playBtn.innerHTML = '<i class="fas fa-play"></i>';
         playBtn.title = 'Reproduzir';
     }
     
-    // Parar intervalo
     if (updateInterval) {
         clearInterval(updateInterval);
         updateInterval = null;
     }
     
-    // Resetar barra de progresso
     document.getElementById('progressFill').style.width = '0%';
     document.getElementById('currentTime').textContent = '0:00';
     
-    // Mostrar notificação
     showNotification('🎵 Música terminada. Clique em Play para repetir');
-    
-    // SÓ passar para próxima se autoNextEnabled estiver ativo
-    if (autoNextEnabled) {
-        setTimeout(() => {
-            playNextTrack();
-        }, 1000);
-    }
 }
 
 function onAudioError(event) {
-    console.error('❌ Erro no player de áudio:', audioPlayer.error);
-    
     let errorMsg = 'Erro ao carregar a música. ';
     
     if (audioPlayer.error) {
@@ -1199,9 +1788,6 @@ function onAudioError(event) {
     }
     
     showNotification(errorMsg);
-    
-    // NÃO tentar próxima música automaticamente
-    console.log('⚠️ Erro na música - NÃO passando para próxima automaticamente');
 }
 
 function onAudioTimeUpdate() {
@@ -1209,8 +1795,6 @@ function onAudioTimeUpdate() {
 }
 
 function onAudioMetadataLoaded() {
-    console.log('📊 Metadados de áudio carregados');
-    
     const durationElement = document.getElementById('duration');
     if (durationElement && audioPlayer.duration) {
         durationElement.textContent = formatTime(audioPlayer.duration);
@@ -1218,9 +1802,6 @@ function onAudioMetadataLoaded() {
 }
 
 function setupPlayerControls() {
-    console.log('🎛️ Configurando controles do player...');
-    
-    // Botão play/pause
     const playBtn = document.getElementById('playBtn');
     if (playBtn) {
         playBtn.addEventListener('click', function(e) {
@@ -1240,44 +1821,30 @@ function setupPlayerControls() {
             if (isPlaying) {
                 audioPlayer.pause();
             } else {
-                // Se a música terminou, voltar ao início
                 if (audioPlayer.ended || audioPlayer.currentTime >= audioPlayer.duration) {
                     audioPlayer.currentTime = 0;
                 }
                 playAudio();
             }
         });
-        
-        if (isMobile) {
-            playBtn.style.padding = '15px';
-            playBtn.style.minWidth = '60px';
-            playBtn.style.minHeight = '60px';
-        }
     }
     
-    // Botão próximo - AGORA SÓ MUDA QUANDO O USUÁRIO CLICAR
     const nextBtn = document.getElementById('nextBtn');
     if (nextBtn) {
         nextBtn.addEventListener('click', () => {
             handleUserInteraction();
-            if (confirm('Tocar próxima música?')) {
-                playNextTrack();
-            }
+            playNextTrack();
         });
     }
     
-    // Botão anterior - AGORA SÓ MUDA QUANDO O USUÁRIO CLICAR
     const prevBtn = document.getElementById('prevBtn');
     if (prevBtn) {
         prevBtn.addEventListener('click', () => {
             handleUserInteraction();
-            if (confirm('Tocar música anterior?')) {
-                playPrevTrack();
-            }
+            playPrevTrack();
         });
     }
     
-    // Controle de volume
     const volumeSlider = document.getElementById('volumeSlider');
     if (volumeSlider) {
         volumeSlider.value = audioVolume * 100;
@@ -1300,7 +1867,6 @@ function setupPlayerControls() {
         });
     }
     
-    // Botão de mute
     const muteBtn = document.getElementById('muteBtn');
     if (muteBtn) {
         muteBtn.addEventListener('click', () => {
@@ -1309,7 +1875,6 @@ function setupPlayerControls() {
         });
     }
     
-    // Botão de informações
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     if (fullscreenBtn) {
         fullscreenBtn.addEventListener('click', () => {
@@ -1318,7 +1883,6 @@ function setupPlayerControls() {
         });
     }
     
-    // Barra de progresso
     const progressBar = document.getElementById('progressBar');
     if (progressBar) {
         progressBar.addEventListener('click', (e) => {
@@ -1330,26 +1894,12 @@ function setupPlayerControls() {
                 audioPlayer.currentTime = newTime;
             }
         });
-        
-        if (isMobile) {
-            progressBar.style.height = '10px';
-            progressBar.style.cursor = 'pointer';
-        }
     }
     
-    // Inicialmente desabilitar controles
     enableControls(false);
-    
-    if (isMobile) {
-        setTimeout(() => {
-            showNotification('🔊 Toque na tela primeiro, depois em Play');
-        }, 2000);
-    }
 }
 
 function enableControls(enabled) {
-    console.log(`🎚️ ${enabled ? 'Habilitando' : 'Desabilitando'} controles...`);
-    
     const buttons = ['playBtn', 'prevBtn', 'nextBtn', 'muteBtn', 'fullscreenBtn'];
     const slider = document.getElementById('volumeSlider');
     const progress = document.getElementById('progressBar');
@@ -1406,9 +1956,7 @@ function loadPlaylist() {
             }
             
             if (playerReady) {
-                if (confirm(`Tocar "${song.title}"?`)) {
-                    playTrack(index);
-                }
+                playTrack(index);
             } else {
                 showNotification('Aguarde o player carregar...');
             }
@@ -1418,7 +1966,6 @@ function loadPlaylist() {
     });
 }
 
-// MODIFICADA: Adicionado parâmetro para não tocar automaticamente
 function loadTrack(index, shouldPlay = false) {
     if (index < 0 || index >= CONFIG.musicPlaylist.length) {
         console.error('Índice inválido:', index);
@@ -1429,60 +1976,42 @@ function loadTrack(index, shouldPlay = false) {
     const track = CONFIG.musicPlaylist[index];
     
     if (audioPlayer) {
-        console.log(`🎵 Carregando: ${track.title} (tocar: ${shouldPlay})`);
-        
-        // Parar áudio atual
         audioPlayer.pause();
         isPlaying = false;
-        
-        // Resetar fonte
         audioPlayer.src = '';
         
         setTimeout(() => {
-            // Definir nova fonte
             audioPlayer.src = track.src;
-            
-            // Forçar carregamento
             audioPlayer.load();
             
-            // Atualizar informações
             updateCurrentSongInfo();
             updatePlaylistUI();
-            
-            // Habilitar controles
             enableControls(true);
             
-            // Mostrar notificação
             showNotification(`🎵 ${track.title} carregada`);
             
-            // Só tocar se shouldPlay for true
             if (shouldPlay) {
                 setTimeout(() => {
                     playAudio();
                 }, 500);
             }
-            
         }, 100);
     }
 }
 
 function playTrack(index) {
-    // Carregar e tocar a música
     loadTrack(index, true);
 }
 
 function playCurrentTrack() {
     if (!audioPlayer || !playerReady) {
-        console.log('Player não está pronto');
         showNotification('Carregando música...');
         return;
     }
     
-    // Verificar se já tem fonte
     if (!audioPlayer.src && CONFIG.musicPlaylist.length > 0) {
-        loadTrack(currentTrackIndex, true); // true = tocar após carregar
+        loadTrack(currentTrackIndex, true);
     } else {
-        // Se a música terminou, voltar ao início
         if (audioPlayer.ended || audioPlayer.currentTime >= audioPlayer.duration) {
             audioPlayer.currentTime = 0;
         }
@@ -1493,16 +2022,12 @@ function playCurrentTrack() {
 function playAudio() {
     if (!audioPlayer) return;
     
-    // Verificar permissões em mobile
     if (isMobile && !audioUnlocked) {
         showAudioPermissionOverlay();
         return;
     }
     
-    console.log('▶️ Tentando reproduzir áudio...');
-    
     audioPlayer.play().then(() => {
-        console.log('✅ Áudio reproduzindo com sucesso');
         isPlaying = true;
         
         const playBtn = document.getElementById('playBtn');
@@ -1522,21 +2047,15 @@ function playAudio() {
         }
         
     }).catch(error => {
-        console.error('❌ Erro ao reproduzir áudio:', error);
-        
         if (error.name === 'NotAllowedError') {
-            console.log('🛑 Autoplay bloqueado - requer interação do usuário');
-            
             if (isMobile) {
                 showAudioPermissionOverlay();
             } else {
                 showNotification('🔊 Clique no botão Play para iniciar');
             }
-            
         } else if (error.name === 'NotSupportedError') {
             showNotification('❌ Formato de áudio não suportado');
         } else {
-            console.error('Erro detalhado:', error);
             showNotification('⚠️ Erro ao reproduzir. Tente novamente.');
         }
     });
@@ -1546,14 +2065,14 @@ function playNextTrack() {
     if (CONFIG.musicPlaylist.length === 0) return;
     
     currentTrackIndex = (currentTrackIndex + 1) % CONFIG.musicPlaylist.length;
-    loadTrack(currentTrackIndex, true); // true = tocar após carregar
+    loadTrack(currentTrackIndex, true);
 }
 
 function playPrevTrack() {
     if (CONFIG.musicPlaylist.length === 0) return;
     
     currentTrackIndex = (currentTrackIndex - 1 + CONFIG.musicPlaylist.length) % CONFIG.musicPlaylist.length;
-    loadTrack(currentTrackIndex, true); // true = tocar após carregar
+    loadTrack(currentTrackIndex, true);
 }
 
 function toggleMute() {
@@ -1592,13 +2111,13 @@ function showSongInfo() {
                     <p><strong>Arquivo:</strong> ${song.src}</p>
                 </div>
                 <div class="modal-actions">
-                    <button class="modal-btn" onclick="if(confirm('Tocar música anterior?')) playPrevTrack()">
+                    <button class="modal-btn" onclick="playPrevTrack()">
                         <i class="fas fa-step-backward"></i> Anterior
                     </button>
                     <button class="modal-btn" onclick="togglePlayPause()">
                         <i class="fas ${isPlaying ? 'fa-pause' : 'fa-play'}"></i> ${isPlaying ? 'Pausar' : 'Reproduzir'}
                     </button>
-                    <button class="modal-btn" onclick="if(confirm('Tocar próxima música?')) playNextTrack()">
+                    <button class="modal-btn" onclick="playNextTrack()">
                         Próxima <i class="fas fa-step-forward"></i>
                     </button>
                 </div>
@@ -1611,13 +2130,6 @@ function showSongInfo() {
         modal.onclick = (e) => {
             if (e.target === modal) modal.remove();
         };
-        
-        document.addEventListener('keydown', function closeOnEscape(e) {
-            if (e.key === 'Escape' && modal.parentNode) {
-                modal.remove();
-                document.removeEventListener('keydown', closeOnEscape);
-            }
-        });
     }
 }
 
@@ -1632,7 +2144,6 @@ function togglePlayPause() {
     if (isPlaying) {
         audioPlayer.pause();
     } else {
-        // Se a música terminou, voltar ao início
         if (audioPlayer.ended || audioPlayer.currentTime >= audioPlayer.duration) {
             audioPlayer.currentTime = 0;
         }
@@ -1697,43 +2208,6 @@ function updatePlaylistUI() {
     });
 }
 
-// ===== GALERIA DE FOTOS =====
-function loadGallery() {
-    const photoGrid = document.getElementById('photoGrid');
-    if (!photoGrid) return;
-    
-    photoGrid.innerHTML = '';
-    
-    CONFIG.photos.forEach(photo => {
-        const photoItem = document.createElement('div');
-        photoItem.className = 'photo-item';
-        
-        photoItem.innerHTML = `
-            <div class="image-container">
-                <img 
-                    src="${photo.src}" 
-                    alt="${photo.alt}"
-                    class="gallery-image"
-                    loading="lazy"
-                    onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
-                >
-                <div class="image-fallback" style="display: none;">
-                    💕 ${photo.alt}
-                </div>
-            </div>
-            <div class="photo-overlay">
-                <p class="photo-description">${photo.description}</p>
-            </div>
-        `;
-        
-        photoItem.addEventListener('click', () => {
-            openPhotoModal(photo.src, photo.alt, photo.description);
-        });
-        
-        photoGrid.appendChild(photoItem);
-    });
-}
-
 // ===== CONTADOR DE TEMPO =====
 function updateTimeTogether() {
     const startDate = new Date(CONFIG.startDate).getTime();
@@ -1783,29 +2257,43 @@ function scrollToSection(sectionId) {
     }
 }
 
-// ===== FORMULÁRIO =====
-function handleSubmit(event) {
+// ===== FORMULÁRIO DE CONTATO =====
+async function handleSubmit(event) {
     event.preventDefault();
     const message = document.getElementById('message');
     
     if (message && message.value.trim()) {
-        showNotification('💌 Mensagem de amor enviada!');
-        saveMessage(message.value);
-        message.value = '';
-        createHeartExplosion();
-    }
-}
-
-function saveMessage(message) {
-    try {
-        const messages = JSON.parse(localStorage.getItem('loveMessages') || '[]');
-        messages.push({
-            text: message,
-            date: new Date().toISOString()
-        });
-        localStorage.setItem('loveMessages', JSON.stringify(messages));
-    } catch (e) {
-        console.log('Erro ao salvar mensagem:', e);
+        const newMessage = {
+            title: 'Mensagem do Formulário',
+            content: message.value.trim(),
+            author: 'Visitante',
+            color: '#e8f5e8',
+            date: new Date().toLocaleDateString('pt-BR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            })
+        };
+        
+        try {
+            const result = await saveMessageToCloud(newMessage);
+            
+            if (result.success) {
+                if (result.source === 'firebase') {
+                    showNotification('💌 Mensagem enviada para o mural de amor!');
+                } else {
+                    showNotification('📱 Mensagem salva localmente! Será sincronizada quando a conexão voltar.');
+                }
+                message.value = '';
+                createHeartExplosion();
+            } else {
+                showNotification('❌ Erro ao enviar mensagem. Tente novamente.');
+            }
+            
+        } catch (error) {
+            console.error('❌ Erro geral ao enviar mensagem:', error);
+            showNotification('❌ Erro ao enviar mensagem.');
+        }
     }
 }
 
@@ -1887,14 +2375,12 @@ function openPhotoModal(src, alt, description) {
         if (e.target === modal) modal.remove();
     };
     
-    const closeOnEscape = (e) => {
+    document.addEventListener('keydown', function closeOnEscape(e) {
         if (e.key === 'Escape' && modal.parentNode) {
             modal.remove();
             document.removeEventListener('keydown', closeOnEscape);
         }
-    };
-    
-    document.addEventListener('keydown', closeOnEscape);
+    });
 }
 
 function loadSettings() {
@@ -1937,15 +2423,11 @@ document.addEventListener('keydown', (e) => {
     if (e.code === 'ArrowRight') {
         e.preventDefault();
         handleUserInteraction();
-        if (confirm('Tocar próxima música?')) {
-            playNextTrack();
-        }
+        playNextTrack();
     } else if (e.code === 'ArrowLeft') {
         e.preventDefault();
         handleUserInteraction();
-        if (confirm('Tocar música anterior?')) {
-            playPrevTrack();
-        }
+        playPrevTrack();
     }
     
     if (e.code === 'KeyM') {
@@ -1991,45 +2473,13 @@ if ('ontouchstart' in window) {
     }
 }
 
-// ===== FUNÇÃO DE DEBUG =====
-function debugAudio() {
-    console.log('=== DEBUG AUDIO ===');
-    console.log('isMobile:', isMobile);
-    console.log('userInteracted:', userInteracted);
-    console.log('audioUnlocked:', audioUnlocked);
-    console.log('Player:', audioPlayer);
-    console.log('Player Ready:', playerReady);
-    console.log('Is Playing:', isPlaying);
-    console.log('Current Track:', currentTrackIndex);
-    console.log('Src:', audioPlayer?.src);
-    console.log('Ready State:', audioPlayer?.readyState);
-    console.log('Error:', audioPlayer?.error);
-    console.log('Volume:', audioPlayer?.volume);
-    console.log('Muted:', audioPlayer?.muted);
-    console.log('===================');
-}
+// ===== EXPORTAR FUNÇÕES PARA USO GLOBAL =====
+window.saveMessageToCloud = saveMessageToCloud;
+window.syncOfflineMessages = syncOfflineMessages;
+window.togglePlayPause = togglePlayPause;
+window.playNextTrack = playNextTrack;
+window.playPrevTrack = playPrevTrack;
+window.showSongInfo = showSongInfo;
+window.handleImageError = handleImageError;
 
-// Adicionar botão de debug (opcional, remover em produção)
-document.addEventListener('DOMContentLoaded', function() {
-    const debugBtn = document.createElement('button');
-    debugBtn.textContent = '🔧 Debug';
-    debugBtn.style.cssText = `
-        position: fixed;
-        bottom: 10px;
-        left: 10px;
-        z-index: 9999;
-        background: #ff4444;
-        color: white;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 5px;
-        cursor: pointer;
-        font-size: 12px;
-        opacity: 0.5;
-    `;
-    debugBtn.addEventListener('click', debugAudio);
-    document.body.appendChild(debugBtn);
-});
-
-console.log(`
-`);
+console.log('✅ Script.js carregado com sucesso!');

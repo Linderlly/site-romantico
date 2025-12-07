@@ -14,7 +14,7 @@
     <!-- Fontes -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
     
     <!-- Ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -37,6 +37,11 @@
         <p>Carregando nosso amor...</p>
     </div>
 
+    <!-- Firebase Status Indicator -->
+    <div class="firebase-status" id="firebaseStatus">
+        <i class="fas fa-circle"></i> Conectando...
+    </div>
+
     <!-- Header -->
     <header class="header">
         <nav class="nav">
@@ -52,6 +57,7 @@
                 <li><button onclick="scrollToSection('inicio')">Início</button></li>
                 <li><button onclick="scrollToSection('historia')">Nossa História</button></li>
                 <li><button onclick="scrollToSection('fotos')">Fotos</button></li>
+                <li><button onclick="scrollToSection('mural')">Mural de Mensagens</button></li>
                 <li><button onclick="scrollToSection('jardim')">Jardim Secreto</button></li>
                 <li><button onclick="scrollToSection('contato')">Contato</button></li>
             </ul>
@@ -68,6 +74,7 @@
                 <li><button onclick="scrollToSection('inicio')">Início</button></li>
                 <li><button onclick="scrollToSection('historia')">Nossa História</button></li>
                 <li><button onclick="scrollToSection('fotos')">Fotos</button></li>
+                <li><button onclick="scrollToSection('mural')">Mural de Mensagens</button></li>
                 <li><button onclick="scrollToSection('jardim')">Jardim Secreto</button></li>
                 <li><button onclick="scrollToSection('contato')">Contato</button></li>
             </ul>
@@ -197,6 +204,60 @@
         </div>
     </section>
 
+    <!-- Mural de Mensagens Section -->
+    <section id="mural" class="message-wall">
+        <div class="container">
+            <h2>💌 Mural de Mensagens</h2>
+            <p class="wall-subtitle">Deslize para ler minhas mensagens de amor para você</p>
+            
+            <!-- Botão para adicionar nova mensagem (admin) -->
+            <div class="add-message-container">
+                <button class="add-message-btn" id="addMessageBtn">
+                    <i class="fas fa-plus-circle"></i> Adicionar Nova Mensagem
+                </button>
+                <span class="message-count" id="messageCount">0 mensagens</span>
+            </div>
+            
+            <!-- Contêiner do mural com scroll horizontal -->
+            <div class="wall-container">
+                <!-- Botões de navegação -->
+                <button class="nav-btn prev-btn" id="prevWallBtn">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                
+                <div class="wall-scroll" id="wallScroll">
+                    <div class="wall-content" id="wallContent">
+                        <!-- Mensagens serão carregadas aqui via JavaScript -->
+                        <div class="messages-loading">
+                            <div class="spinner">💖</div>
+                            <p>Carregando mensagens de amor...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button class="nav-btn next-btn" id="nextWallBtn">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            
+            <!-- Indicadores de página -->
+            <div class="wall-indicators" id="wallIndicators">
+                <!-- Indicadores serão gerados dinamicamente -->
+            </div>
+            
+            <!-- Controles para mobile -->
+            <div class="mobile-controls">
+                <button class="mobile-nav-btn" id="mobilePrevBtn">
+                    <i class="fas fa-arrow-left"></i> Anterior
+                </button>
+                <div class="current-position" id="currentPosition">0 / 0</div>
+                <button class="mobile-nav-btn" id="mobileNextBtn">
+                    Próxima <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+    </section>
+
     <!-- Jardim das Rosas Section -->
     <section id="jardim" class="rose-garden">
         <div class="container">
@@ -301,7 +362,58 @@
         </div>
     </section>
 
-    <!-- Scripts -->
-    <script src="script.js"></script>
+    <!-- Modal para adicionar mensagem -->
+    <div class="add-message-modal" id="addMessageModal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h3><i class="fas fa-heart"></i> Adicionar Nova Mensagem</h3>
+            
+            <form id="newMessageForm">
+                <div class="form-group">
+                    <label for="messageTitle">Título da Mensagem:</label>
+                    <input type="text" id="messageTitle" placeholder="Ex: Minha Razão de Viver" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="messageContent">Sua Mensagem:</label>
+                    <textarea id="messageContent" rows="6" placeholder="Escreva sua mensagem de amor aqui..." required></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="messageDate">Data (opcional):</label>
+                    <input type="date" id="messageDate">
+                </div>
+                
+                <div class="form-group">
+                    <label for="messageColor">Cor do Cartão:</label>
+                    <div class="color-picker">
+                        <button type="button" class="color-option" data-color="#ffebee" style="background: #ffebee;"></button>
+                        <button type="button" class="color-option" data-color="#f3e5f5" style="background: #f3e5f5;"></button>
+                        <button type="button" class="color-option" data-color="#e3f2fd" style="background: #e3f2fd;"></button>
+                        <button type="button" class="color-option" data-color="#e8f5e8" style="background: #e8f5e8;"></button>
+                        <button type="button" class="color-option" data-color="#fff8e1" style="background: #fff8e1;"></button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="messageAuthor">Seu Nome (opcional):</label>
+                    <input type="text" id="messageAuthor" placeholder="Ex: Seu Amor">
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="cancel-btn" id="cancelMessageBtn">Cancelar</button>
+                    <button type="submit" class="save-btn">
+                        <i class="fas fa-save"></i> Salvar no Mural
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+ <!-- Módulo Firebase (SEM AUTENTICAÇÃO) -->
+<script type="module" src="firebase-app.js"></script>
+
+<!-- Script principal -->
+<script src="script.js"></script>
 </body>
 </html>
