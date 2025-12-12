@@ -100,6 +100,13 @@ const CONFIG = {
             artist: 'Ed Sheeran',
             duration: '4:23',
             format: 'mp3'
+        },
+        { 
+            src: 'music/musica11.mp3', 
+            title: 'Sujeito Homem',
+            artist: 'Guilherme e Benuto',
+            duration: '3:04',
+            format: 'mp3'
         }
     ],
     
@@ -163,7 +170,7 @@ const offlineMessages = [];
 
 // ===== INICIALIZAÇÃO PRINCIPAL =====
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('🚀 Inicializando Site Romântico...');
+    console.log('Inicializando Site Romântico...');
     
     // Verificar se é dispositivo móvel
     isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -227,12 +234,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 // ===== INICIALIZAÇÃO DO FIREBASE =====
 async function initializeFirebaseConnection() {
-    console.log('🔥 Inicializando conexão com Firebase...');
+    console.log('Inicializando conexão com Firebase...');
     
     // Verificar se o módulo Firebase está disponível
     if (typeof window.firebaseApp === 'undefined') {
-        console.error('❌ Módulo Firebase não encontrado');
-        showNotification('⚠️ Firebase não disponível. Usando modo offline.');
         firebaseReady = false;
         loadLocalMessages();
         return;
@@ -245,7 +250,6 @@ async function initializeFirebaseConnection() {
             if (initialized) {
                 firebaseReady = true;
                 firebaseInitialized = true;
-                console.log('✅ Firebase inicializado com sucesso');
             }
         }
         
@@ -256,7 +260,6 @@ async function initializeFirebaseConnection() {
         loadFirebaseMessages();
         
     } catch (error) {
-        console.error('❌ Erro na inicialização do Firebase:', error);
         firebaseReady = false;
         showNotification('📱 Modo offline ativado. Suas mensagens serão salvas localmente.');
         loadLocalMessages();
@@ -271,7 +274,6 @@ function setupFirebaseStatusListener() {
             const isConn = window.firebaseApp.isConnected();
             if (isConn !== firebaseReady) {
                 firebaseReady = isConn;
-                console.log(firebaseReady ? '✅ Firebase conectado' : '⚠️ Firebase desconectado');
                 
                 if (firebaseReady) {
                     // Sincronizar mensagens offline
@@ -287,7 +289,6 @@ function setupFirebaseStatusListener() {
 // ===== CARREGAR MENSAGENS DO FIREBASE =====
 function loadFirebaseMessages() {
     if (!window.firebaseApp || !window.firebaseApp.loadMessages) {
-        console.error('❌ Firebase não disponível para carregar mensagens');
         loadLocalMessages();
         return;
     }
@@ -300,8 +301,6 @@ function loadFirebaseMessages() {
         
         // Carregar mensagens do Firestore
         messagesUnsubscribe = window.firebaseApp.loadMessages((messages) => {
-            console.log(`📥 ${messages.length} mensagens recebidas do Firebase`);
-            
             // Combinar com mensagens offline
             const allMessages = [...messages];
             
@@ -328,7 +327,6 @@ function loadFirebaseMessages() {
         });
         
     } catch (error) {
-        console.error('❌ Erro ao carregar mensagens do Firebase:', error);
         loadLocalMessages();
     }
 }
@@ -337,7 +335,6 @@ function loadFirebaseMessages() {
 function loadLocalMessages() {
     if (window.firebaseApp && window.firebaseApp.loadFromLocalStorage) {
         window.firebaseApp.loadFromLocalStorage((messages) => {
-            console.log(`📱 ${messages.length} mensagens carregadas do localStorage`);
             wallMessages = messages;
             createMessageWall();
         });
@@ -345,11 +342,9 @@ function loadLocalMessages() {
         // Fallback manual
         try {
             const savedMessages = JSON.parse(localStorage.getItem('loveMessages_offline')) || [];
-            console.log(`📱 ${savedMessages.length} mensagens carregadas do localStorage`);
             wallMessages = savedMessages;
             createMessageWall();
         } catch (e) {
-            console.error('❌ Erro ao carregar mensagens locais:', e);
             wallMessages = [];
             createMessageWall();
         }
@@ -372,8 +367,6 @@ async function saveMessageToCloud(messageData) {
             const result = await window.firebaseApp.addMessage(messageWithTimestamp);
             
             if (result && result.success) {
-                console.log('✅ Mensagem salva no Firebase:', result.messageId);
-                
                 // Recarregar mensagens para atualizar a interface
                 setTimeout(() => loadFirebaseMessages(), 1000);
                 
@@ -384,7 +377,6 @@ async function saveMessageToCloud(messageData) {
                 };
             }
         } catch (error) {
-            console.error('❌ Erro ao salvar no Firebase:', error);
             // Continuar para salvar localmente
         }
     }
@@ -428,12 +420,9 @@ function saveMessageLocally(messageData) {
         wallMessages.unshift(localMessage);
         createMessageWall();
         
-        console.log('📱 Mensagem salva localmente:', localMessage.id);
-        
         return localMessage.id;
         
     } catch (e) {
-        console.error('❌ Erro ao salvar localmente:', e);
         showNotification('⚠️ Erro ao salvar a mensagem. Tente novamente.');
         return null;
     }
@@ -442,20 +431,17 @@ function saveMessageLocally(messageData) {
 // ===== SINCRONIZAR MENSAGENS OFFLINE =====
 async function syncOfflineMessages() {
     if (!firebaseReady || !window.firebaseApp || !window.firebaseApp.syncOfflineMessages) {
-        console.log('⚠️ Firebase não disponível para sincronização');
         return;
     }
     
     try {
         if (offlineMessages.length > 0) {
-            console.log(`🔄 Sincronizando ${offlineMessages.length} mensagens offline...`);
             await window.firebaseApp.syncOfflineMessages();
             
             // Recarregar mensagens após sincronização
             setTimeout(() => loadFirebaseMessages(), 1000);
         }
     } catch (error) {
-        console.error('❌ Erro na sincronização:', error);
     }
 }
 
@@ -465,19 +451,15 @@ function loadOfflineMessages() {
         const savedMessages = JSON.parse(localStorage.getItem('loveMessages_offline')) || [];
         offlineMessages.length = 0; // Limpar array
         offlineMessages.push(...savedMessages);
-        console.log(`📱 ${savedMessages.length} mensagens offline carregadas`);
         
         return savedMessages;
     } catch (e) {
-        console.error('❌ Erro ao carregar mensagens offline:', e);
         return [];
     }
 }
 
 // ===== MURAL DE MENSAGENS =====
 function initializeMessageWall() {
-    console.log('💌 Inicializando mural de mensagens...');
-    
     // Configurar botão de adicionar mensagem
     const addMessageBtn = document.getElementById('addMessageBtn');
     const addMessageModal = document.getElementById('addMessageModal');
@@ -585,7 +567,6 @@ function initializeMessageWall() {
                 }
                 
             } catch (error) {
-                console.error('❌ Erro ao processar mensagem:', error);
                 showNotification('❌ Erro ao processar a mensagem.');
             }
         });
@@ -600,8 +581,6 @@ function initializeMessageWall() {
 
 // ===== FUNÇÃO PARA ATUALIZAR MURAL =====
 window.updateMessageWall = function(messages) {
-    console.log('🔄 Atualizando mural com', messages.length, 'mensagens');
-    
     // Combinar com mensagens offline
     const allMessages = [...messages];
     
@@ -1266,8 +1245,6 @@ function enableLightMode() {
 
 // ===== JARDIM DAS ROSAS =====
 function initializeGarden() {
-    console.log('🌹 Inicializando jardim das rosas...');
-    
     loadGardenData();
     createRoses();
     
@@ -1300,7 +1277,6 @@ function loadGardenData() {
             }
         }
     } catch (e) {
-        console.log('Erro ao carregar dados do jardim:', e);
     }
 }
 
@@ -1312,7 +1288,6 @@ function saveGardenData() {
             specialRoseIndex: CONFIG.garden.specialRoseIndex
         }));
     } catch (e) {
-        console.log('Erro ao salvar dados do jardim:', e);
     }
 }
 
@@ -1970,7 +1945,6 @@ function loadPlaylist() {
 
 function loadTrack(index, shouldPlay = false) {
     if (index < 0 || index >= CONFIG.musicPlaylist.length) {
-        console.error('Índice inválido:', index);
         return;
     }
     
@@ -2167,7 +2141,6 @@ function updateProgressBar() {
                 document.getElementById('duration').textContent = formatTime(duration);
             }
         } catch (error) {
-            console.warn('Erro ao atualizar barra de progresso:', error);
         }
     }
 }
@@ -2293,7 +2266,6 @@ async function handleSubmit(event) {
             }
             
         } catch (error) {
-            console.error('❌ Erro geral ao enviar mensagem:', error);
             showNotification('❌ Erro ao enviar mensagem.');
         }
     }
@@ -2401,13 +2373,21 @@ function loadSettings() {
             }
         }
     } catch (e) {
-        console.log('Erro ao carregar configurações:', e);
     }
 }
 
-// ===== ATALHOS DE TECLADO =====
+// ===== ATALHOS DE TECLADO (CORRIGIDOS) =====
 document.addEventListener('keydown', (e) => {
-    if (e.code === 'Space' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+    // Verificar se o usuário está digitando em um campo de entrada
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        return; // Não ativar atalhos quando estiver digitando
+    }
+    
+    // Atalhos só funcionam quando o player está visível
+    const playerContent = document.getElementById('playerContent');
+    const isPlayerActive = playerContent && playerContent.classList.contains('expanded');
+    
+    if (e.code === 'Space' && isPlayerActive) {
         e.preventDefault();
         handleUserInteraction();
         if (playerReady) {
@@ -2422,23 +2402,28 @@ document.addEventListener('keydown', (e) => {
         }
     }
     
-    if (e.code === 'ArrowRight') {
-        e.preventDefault();
-        handleUserInteraction();
-        playNextTrack();
-    } else if (e.code === 'ArrowLeft') {
-        e.preventDefault();
-        handleUserInteraction();
-        playPrevTrack();
+    // Atalhos de navegação (só com Ctrl)
+    if (e.ctrlKey) {
+        if (e.code === 'ArrowRight') {
+            e.preventDefault();
+            handleUserInteraction();
+            playNextTrack();
+        } else if (e.code === 'ArrowLeft') {
+            e.preventDefault();
+            handleUserInteraction();
+            playPrevTrack();
+        }
     }
     
-    if (e.code === 'KeyM') {
+    // Atalho Mute (só com Ctrl)
+    if (e.ctrlKey && e.code === 'KeyM') {
         e.preventDefault();
         handleUserInteraction();
         toggleMute();
     }
     
-    if (e.code === 'KeyI') {
+    // Atalho Info (só com Ctrl)
+    if (e.ctrlKey && e.code === 'KeyI') {
         e.preventDefault();
         handleUserInteraction();
         showSongInfo();
@@ -2484,4 +2469,4 @@ window.playPrevTrack = playPrevTrack;
 window.showSongInfo = showSongInfo;
 window.handleImageError = handleImageError;
 
-console.log('✅ Script.js carregado com sucesso!');
+console.log('Script.js carregado com sucesso!');
