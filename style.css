@@ -1287,6 +1287,50 @@ body {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
+/* NOVO: Ajustar cores claras no modo escuro */
+.dark-mode .message-card {
+    /* Forçar contraste para cores muito claras no modo escuro */
+    position: relative;
+}
+
+.dark-mode .message-card[style*="background: #ffebee"],
+.dark-mode .message-card[style*="background:#ffebee"],
+.dark-mode .message-card[style*="background: #f3e5f5"],
+.dark-mode .message-card[style*="background:#f3e5f5"],
+.dark-mode .message-card[style*="background: #e3f2fd"],
+.dark-mode .message-card[style*="background:#e3f2fd"],
+.dark-mode .message-card[style*="background: #e8f5e8"],
+.dark-mode .message-card[style*="background:#e8f5e8"],
+.dark-mode .message-card[style*="background: #fff8e1"],
+.dark-mode .message-card[style*="background:#fff8e1"] {
+    background: var(--card-bg) !important;
+    border: 2px solid rgba(255, 107, 157, 0.3) !important;
+}
+
+/* Aplicar cores mais escuras para melhor contraste no modo escuro */
+.dark-mode .message-card[style*="background: #ffebee"] .message-title,
+.dark-mode .message-card[style*="background:#ffebee"] .message-title,
+.dark-mode .message-card[style*="background: #ffebee"] .message-text,
+.dark-mode .message-card[style*="background:#ffebee"] .message-text,
+.dark-mode .message-card[style*="background: #f3e5f5"] .message-title,
+.dark-mode .message-card[style*="background:#f3e5f5"] .message-title,
+.dark-mode .message-card[style*="background: #f3e5f5"] .message-text,
+.dark-mode .message-card[style*="background:#f3e5f5"] .message-text,
+.dark-mode .message-card[style*="background: #e3f2fd"] .message-title,
+.dark-mode .message-card[style*="background:#e3f2fd"] .message-title,
+.dark-mode .message-card[style*="background: #e3f2fd"] .message-text,
+.dark-mode .message-card[style*="background:#e3f2fd"] .message-text,
+.dark-mode .message-card[style*="background: #e8f5e8"] .message-title,
+.dark-mode .message-card[style*="background:#e8f5e8"] .message-title,
+.dark-mode .message-card[style*="background: #e8f5e8"] .message-text,
+.dark-mode .message-card[style*="background:#e8f5e8"] .message-text,
+.dark-mode .message-card[style*="background: #fff8e1"] .message-title,
+.dark-mode .message-card[style*="background:#fff8e1"] .message-title,
+.dark-mode .message-card[style*="background: #fff8e1"] .message-text,
+.dark-mode .message-card[style*="background:#fff8e1"] .message-text {
+    color: var(--text-color) !important;
+}
+
 .message-card::before {
     content: '';
     position: absolute;
@@ -1341,28 +1385,38 @@ body {
 
 .dark-mode .message-author {
     background: rgba(255, 255, 255, 0.1);
-    color: black;
+    color: rgba(255, 255, 255, 0.8);
 }
 
+/* NOVO: Título com cor adaptativa para modo escuro */
 .message-title {
     font-size: 1.5rem;
     font-weight: 600;
-    color: black; /* Usar a cor específica para mensagens */
+    color: #333333; /* Cor padrão clara */
     margin-bottom: 15px;
     font-family: 'Playfair Display', serif;
     line-height: 1.3;
 }
 
+.dark-mode .message-title {
+    color: black; /* Branco no modo escuro */
+}
+
+/* NOVO: Texto com cor adaptativa para modo escuro */
 .message-text {
     flex: 1;
     font-size: 1.05rem;
     line-height: 1.6;
-    color: black; /* Usar a cor específica para mensagens */
+    color: #444444; /* Cinza escuro para melhor legibilidade */
     opacity: 0.9;
     margin-bottom: 20px;
     overflow-y: auto;
     max-height: 200px;
     padding-right: 10px;
+}
+
+.dark-mode .message-text {
+    color: black; /* Cinza claro para melhor contraste no modo escuro */
 }
 
 .message-text::-webkit-scrollbar {

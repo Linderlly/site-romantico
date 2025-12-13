@@ -859,8 +859,12 @@ function formatDateTime(dateString) {
 function showFullMessage(message) {
     const modal = document.createElement('div');
     modal.className = 'full-message-modal';
+    
+    // NOVO: Verificar se está no modo escuro
+    const isDarkMode = document.documentElement.classList.contains('dark-mode');
+    
     modal.innerHTML = `
-        <div class="modal-content" style="background: ${message.color || '#ffebee'}">
+        <div class="modal-content" style="background: ${isDarkMode ? 'var(--card-bg)' : message.color || '#ffebee'}; color: ${isDarkMode ? 'var(--text-color)' : 'inherit'}">
             <span class="close-modal">&times;</span>
             <div class="message-header">
                 <div class="message-date">
@@ -869,8 +873,8 @@ function showFullMessage(message) {
                 </div>
                 ${message.author ? `<span class="message-author">${message.author}</span>` : ''}
             </div>
-            <h3>${message.title || 'Mensagem de Amor'}</h3>
-            <div class="full-message-text">${message.content || ''}</div>
+            <h3 style="color: ${isDarkMode ? 'var(--text-color)' : 'inherit'}">${message.title || 'Mensagem de Amor'}</h3>
+            <div class="full-message-text" style="color: ${isDarkMode ? 'var(--text-color)' : 'inherit'}">${message.content || ''}</div>
             ${message.createdAt ? `<div class="message-time">Enviado em: ${formatDateTime(message.createdAt)}</div>` : 
               message.localSaved ? `<div class="message-time" style="color: #ff9800;">Salvo localmente em: ${formatDateTime(message.localTimestamp)}</div>` : ''}
             <div class="message-footer">Com todo meu amor 💖</div>
