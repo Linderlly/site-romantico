@@ -1,4 +1,3 @@
-// ===== CONFIGURAÇÕES =====
 const CONFIG = {
     // Data do início do relacionamento (formato: 'YYYY-MM-DD')
     startDate: '2025-06-05',
@@ -12,9 +11,9 @@ const CONFIG = {
             fallback: "💖"
         },
         { 
-            src: "images/foto2.jpg", 
-            alt: "Primeira viagem juntos",
-            description: "Férias inesquecíveis",
+            src: "images/foto2.jpeg", 
+            alt: "Nossas idas ao cinema",
+            description: "Momentos se tornam-se inesquecíveis",
             fallback: "💕"
         }
     ],
@@ -138,7 +137,6 @@ const CONFIG = {
     }
 };
 
-// ===== VARIÁVEIS GLOBAIS =====
 let audioVolume = 0.7;
 let isDarkMode = false;
 let mouseX = 0;
@@ -147,11 +145,9 @@ let isMobile = false;
 let userInteracted = false;
 let audioUnlocked = false;
 
-// ===== VARIÁVEIS DO MURAL =====
 let wallMessages = [];
 let currentWallIndex = 0;
 
-// ===== VARIÁVEIS DO PLAYER DE ÁUDIO =====
 let audioPlayer = null;
 let currentTrackIndex = 0;
 let isPlaying = false;
@@ -160,15 +156,12 @@ let updateInterval = null;
 let isMuted = false;
 let lastVolume = 70;
 
-// ===== VARIÁVEIS DO FIREBASE =====
 let firebaseReady = false;
 let firebaseInitialized = false;
 let messagesUnsubscribe = null;
 
-// ===== SISTEMA DE MENSAGENS OFFLINE =====
 const offlineMessages = [];
 
-// ===== INICIALIZAÇÃO PRINCIPAL =====
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Inicializando Site Romântico...');
     
@@ -232,7 +225,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
 });
 
-// ===== INICIALIZAÇÃO DO FIREBASE =====
 async function initializeFirebaseConnection() {
     console.log('Inicializando conexão com Firebase...');
     
@@ -266,7 +258,6 @@ async function initializeFirebaseConnection() {
     }
 }
 
-// ===== CONFIGURAR LISTENER DE STATUS DO FIREBASE =====
 function setupFirebaseStatusListener() {
     // Verificar periodicamente o status
     setInterval(() => {
@@ -286,7 +277,6 @@ function setupFirebaseStatusListener() {
     }, 5000);
 }
 
-// ===== CARREGAR MENSAGENS DO FIREBASE =====
 function loadFirebaseMessages() {
     if (!window.firebaseApp || !window.firebaseApp.loadMessages) {
         loadLocalMessages();
@@ -331,7 +321,6 @@ function loadFirebaseMessages() {
     }
 }
 
-// ===== CARREGAR MENSAGENS LOCAIS =====
 function loadLocalMessages() {
     if (window.firebaseApp && window.firebaseApp.loadFromLocalStorage) {
         window.firebaseApp.loadFromLocalStorage((messages) => {
@@ -351,7 +340,6 @@ function loadLocalMessages() {
     }
 }
 
-// ===== SALVAR MENSAGEM (COM FALLBACK) =====
 async function saveMessageToCloud(messageData) {
     // Adicionar timestamp
     const messageWithTimestamp = {
@@ -391,7 +379,6 @@ async function saveMessageToCloud(messageData) {
     };
 }
 
-// ===== SALVAR MENSAGEM LOCALMENTE =====
 function saveMessageLocally(messageData) {
     try {
         const localMessage = {
@@ -428,7 +415,6 @@ function saveMessageLocally(messageData) {
     }
 }
 
-// ===== SINCRONIZAR MENSAGENS OFFLINE =====
 async function syncOfflineMessages() {
     if (!firebaseReady || !window.firebaseApp || !window.firebaseApp.syncOfflineMessages) {
         return;
@@ -445,7 +431,6 @@ async function syncOfflineMessages() {
     }
 }
 
-// ===== CARREGAR MENSAGENS OFFLINE AO INICIAR =====
 function loadOfflineMessages() {
     try {
         const savedMessages = JSON.parse(localStorage.getItem('loveMessages_offline')) || [];
@@ -458,7 +443,6 @@ function loadOfflineMessages() {
     }
 }
 
-// ===== MURAL DE MENSAGENS =====
 function initializeMessageWall() {
     // Configurar botão de adicionar mensagem
     const addMessageBtn = document.getElementById('addMessageBtn');
@@ -579,7 +563,6 @@ function initializeMessageWall() {
     createMessageWall();
 }
 
-// ===== FUNÇÃO PARA ATUALIZAR MURAL =====
 window.updateMessageWall = function(messages) {
     // Combinar com mensagens offline
     const allMessages = [...messages];
@@ -602,7 +585,6 @@ window.updateMessageWall = function(messages) {
     createMessageWall();
 };
 
-// ===== CRIAR MURAL VISUAL =====
 function createMessageWall() {
     const wallContent = document.getElementById('wallContent');
     const wallIndicators = document.getElementById('wallIndicators');
@@ -692,7 +674,6 @@ function createMessageWall() {
     setupTouchEvents();
 }
 
-// ===== FUNÇÕES AUXILIARES DO MURAL =====
 function updateMessageCount(count) {
     const countElement = document.getElementById('messageCount');
     if (countElement) {
@@ -955,7 +936,6 @@ function showFullMessage(message) {
     };
 }
 
-// ===== MANIPULAÇÃO DE RESIZE =====
 function handleResize() {
     const wasMobile = isMobile;
     isMobile = window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -974,7 +954,6 @@ function handleResize() {
     CONFIG.hearts.maxHearts = isMobile ? 15 : 20;
 }
 
-// ===== SETUP DE INTERAÇÃO DO USUÁRIO =====
 function setupUserInteraction() {
     const interactionEvents = ['click', 'touchstart', 'touchend', 'keydown', 'mousedown'];
     
@@ -1063,7 +1042,6 @@ function showAudioPermissionOverlay() {
     });
 }
 
-// ===== CURSOR PERSONALIZADO =====
 function initializeCursor() {
     if (isMobile) return;
     
@@ -1098,7 +1076,6 @@ function initializeCursor() {
     });
 }
 
-// ===== CORAÇÕES FLUTUANTES =====
 function initializeHearts() {
     const container = document.getElementById('hearts-container');
     if (!container) return;
@@ -1188,7 +1165,6 @@ function initializeMenu() {
     });
 }
 
-// ===== TEMA CLARO/ESCURO =====
 function initializeThemeToggle() {
     const themeToggle = document.getElementById('themeToggle');
     if (!themeToggle) return;
@@ -1247,7 +1223,6 @@ function enableLightMode() {
     localStorage.setItem('theme', 'light');
 }
 
-// ===== JARDIM DAS ROSAS =====
 function initializeGarden() {
     loadGardenData();
     createRoses();
@@ -1583,7 +1558,6 @@ function createPetalExplosion() {
     }
 }
 
-// ===== GALERIA DE FOTOS =====
 function loadGallery() {
     const photoGrid = document.getElementById('photoGrid');
     if (!photoGrid) return;
@@ -1630,7 +1604,6 @@ window.handleImageError = function(imgElement, fallbackEmoji) {
     }
 };
 
-// ===== PLAYER DE ÁUDIO HTML5 =====
 function initializeAudioPlayer() {
     createAudioElement();
     loadPlaylist();
@@ -2187,7 +2160,6 @@ function updatePlaylistUI() {
     });
 }
 
-// ===== CONTADOR DE TEMPO =====
 function updateTimeTogether() {
     const startDate = new Date(CONFIG.startDate).getTime();
     const now = new Date().getTime();
@@ -2221,7 +2193,6 @@ function updateTimeTogether() {
     }
 }
 
-// ===== NAVEGAÇÃO =====
 function scrollToSection(sectionId) {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -2236,7 +2207,6 @@ function scrollToSection(sectionId) {
     }
 }
 
-// ===== FORMULÁRIO DE CONTATO =====
 async function handleSubmit(event) {
     event.preventDefault();
     const message = document.getElementById('message');
@@ -2275,7 +2245,6 @@ async function handleSubmit(event) {
     }
 }
 
-// ===== FUNÇÕES AUXILIARES =====
 function showNotification(text) {
     const oldNotifications = document.querySelectorAll('.notification');
     oldNotifications.forEach(notification => notification.remove());
@@ -2380,7 +2349,6 @@ function loadSettings() {
     }
 }
 
-// ===== ATALHOS DE TECLADO (CORRIGIDOS) =====
 document.addEventListener('keydown', (e) => {
     // Verificar se o usuário está digitando em um campo de entrada
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
@@ -2434,7 +2402,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// ===== TOUCH GESTURES FOR MOBILE =====
+
 if ('ontouchstart' in window) {
     let touchStartY = 0;
     const player = document.querySelector('.music-player');
@@ -2464,7 +2432,6 @@ if ('ontouchstart' in window) {
     }
 }
 
-// ===== EXPORTAR FUNÇÕES PARA USO GLOBAL =====
 window.saveMessageToCloud = saveMessageToCloud;
 window.syncOfflineMessages = syncOfflineMessages;
 window.togglePlayPause = togglePlayPause;
