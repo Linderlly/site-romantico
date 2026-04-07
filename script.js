@@ -13,7 +13,7 @@ const CONFIG = {
         { 
             src: "images/foto2.jpeg", 
             alt: "Nossas idas ao cinema",
-            description: "Momentos se tornam-se inesquecíveis",
+            description: "Momentos tornam-se inesquecíveis",
             fallback: "💕"
         }
     ],
