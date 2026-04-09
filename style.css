@@ -17,7 +17,7 @@
     --player-border: #e0e0e0;
     --garden-bg: #f8e1e7;
     --wall-bg: #fff5f7;
-    --message-text: #333333; /* Cor específica para texto das mensagens */
+    --message-text: #333333;
 }
 
 .dark-mode {
@@ -39,7 +39,7 @@
     --player-border: #2d3746;
     --garden-bg: #1a1a2e;
     --wall-bg: #1a1a2e;
-    --message-text: #ffffff; /* Cor específica para texto das mensagens no modo escuro */
+    --message-text: #ffffff;
 }
 
 /* ===== RESET E ESTILOS GERAIS ===== */
@@ -665,7 +665,7 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     animation: pulse 2s infinite;
-    display: none; /* Inicialmente escondido */
+    display: none;
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -962,7 +962,11 @@ body {
     font-size: 3.5rem;
     margin-bottom: 1rem;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    animation: fadeInUp 1s ease-out;
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
 }
 
 .hero-subtitle {
@@ -1286,12 +1290,6 @@ body {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
-/* NOVO: Ajustar cores claras no modo escuro */
-.dark-mode .message-card {
-    /* Forçar contraste para cores muito claras no modo escuro */
-    position: relative;
-}
-
 .dark-mode .message-card[style*="background: #ffebee"],
 .dark-mode .message-card[style*="background:#ffebee"],
 .dark-mode .message-card[style*="background: #f3e5f5"],
@@ -1306,7 +1304,6 @@ body {
     border: 2px solid rgba(255, 107, 157, 0.3) !important;
 }
 
-/* Aplicar cores mais escuras para melhor contraste no modo escuro */
 .dark-mode .message-card[style*="background: #ffebee"] .message-title,
 .dark-mode .message-card[style*="background:#ffebee"] .message-title,
 .dark-mode .message-card[style*="background: #ffebee"] .message-text,
@@ -1360,7 +1357,7 @@ body {
 
 .message-date {
     font-size: 0.85rem;
-    color: var(--primary-color);
+    color: #000000 !important;
     margin-bottom: 10px;
     font-weight: 500;
     display: flex;
@@ -1375,7 +1372,7 @@ body {
 
 .message-author {
     font-size: 0.75rem;
-    color: #666;
+    color: #000000 !important;
     background: rgba(0,0,0,0.05);
     padding: 2px 8px;
     border-radius: 10px;
@@ -1387,26 +1384,24 @@ body {
     color: rgba(255, 255, 255, 0.8);
 }
 
-/* NOVO: Título com cor adaptativa para modo escuro */
 .message-title {
     font-size: 1.5rem;
     font-weight: 600;
-    color: #333333; /* Cor padrão clara */
+    color: #333333;
     margin-bottom: 15px;
     font-family: 'Playfair Display', serif;
     line-height: 1.3;
 }
 
 .dark-mode .message-title {
-    color: black; /* Branco no modo escuro */
+    color: #ffffff;
 }
 
-/* NOVO: Texto com cor adaptativa para modo escuro */
 .message-text {
     flex: 1;
     font-size: 1.05rem;
     line-height: 1.6;
-    color: #444444; /* Cinza escuro para melhor legibilidade */
+    color: #000000 !important;
     opacity: 0.9;
     margin-bottom: 20px;
     overflow-y: auto;
@@ -1415,7 +1410,7 @@ body {
 }
 
 .dark-mode .message-text {
-    color: black; /* Cinza claro para melhor contraste no modo escuro */
+    color: #000000 !important;
 }
 
 .message-text::-webkit-scrollbar {
@@ -1438,18 +1433,18 @@ body {
 
 .message-time {
     font-size: 0.7rem;
-    color: #888;
+    color: #000000 !important;
     margin-top: 5px;
     display: block;
 }
 
 .dark-mode .message-time {
-    color: rgba(255, 255, 255, 0.6);
+    color: #000000 !important;
 }
 
 .message-footer {
     font-size: 0.9rem;
-    color: var(--primary-color);
+    color: #000000 !important;
     text-align: right;
     font-style: italic;
     padding-top: 15px;
@@ -2489,6 +2484,37 @@ body {
     }
 }
 
+/* ===== EFEITO DE DIGITAÇÃO ===== */
+.typing-cursor {
+    display: inline-block;
+    width: 3px;
+    height: 1.2em;
+    background-color: white;
+    margin-left: 5px;
+    animation: blink 0.7s infinite;
+    vertical-align: middle;
+}
+
+.dark-mode .typing-cursor {
+    background-color: var(--primary-color);
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+@media (max-width: 768px) {
+    .hero-title {
+        min-height: 100px;
+        font-size: 2rem;
+    }
+    
+    .typing-cursor {
+        height: 1em;
+    }
+}
+
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 1024px) {
     .hero-title {
@@ -3049,4 +3075,49 @@ body {
     a, button, .clickable {
         cursor: pointer !important;
     }
+}
+
+.dark-mode .message-title,
+.dark-mode .message-text,
+.message-title,
+.message-text {
+    color: #000000 !important;
+}
+
+.dark-mode .message-date,
+.message-date {
+    color: #e91e63 !important;
+}
+
+.dark-mode .message-footer,
+.message-footer {
+    color: #e91e63 !important;
+}
+
+.dark-mode .message-author,
+.message-author {
+    color: #666666 !important;
+    background: rgba(0, 0, 0, 0.08) !important;
+}
+
+.dark-mode .message-time,
+.message-time {
+    color: #888888 !important;
+}
+
+.dark-mode .message-card .message-title,
+.dark-mode .message-card .message-text,
+.message-card .message-title,
+.message-card .message-text {
+    color: #000000 !important;
+}
+
+.message-card[style*="background"] .message-title,
+.message-card[style*="background"] .message-text {
+    color: #000000 !important;
+}
+
+.dark-mode .message-card[style*="background"] .message-title,
+.dark-mode .message-card[style*="background"] .message-text {
+    color: #000000 !important;
 }

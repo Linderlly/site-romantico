@@ -223,6 +223,9 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }, 3000);
     }
+    
+    // Inicializar efeito de digitação
+    initializeTypingEffect();
 });
 
 async function initializeFirebaseConnection() {
@@ -2439,5 +2442,38 @@ window.playNextTrack = playNextTrack;
 window.playPrevTrack = playPrevTrack;
 window.showSongInfo = showSongInfo;
 window.handleImageError = handleImageError;
+
+// ===== EFEITO DE DIGITAÇÃO =====
+function initializeTypingEffect() {
+    const titleElement = document.getElementById('typingTitle');
+    if (!titleElement) return;
+    
+    // Salva o texto original
+    const originalText = titleElement.innerHTML;
+    
+    // Limpa o título e prepara para a digitação
+    titleElement.innerHTML = '';
+    let i = 0;
+    
+    function typeWriter() {
+        if (i < originalText.length) {
+            titleElement.innerHTML = originalText.substring(0, i + 1) + '<span class="typing-cursor"></span>';
+            i++;
+            setTimeout(typeWriter, 100);
+        } else {
+            // Mantém o cursor piscando por mais 2 segundos e depois remove suavemente
+            setTimeout(() => {
+                const cursor = titleElement.querySelector('.typing-cursor');
+                if (cursor) {
+                    cursor.style.animation = 'none';
+                    cursor.style.opacity = '0';
+                }
+            }, 2000);
+        }
+    }
+    
+    // Inicia o efeito após um pequeno delay
+    setTimeout(typeWriter, 500);
+}
 
 console.log('Script.js carregado com sucesso!');
