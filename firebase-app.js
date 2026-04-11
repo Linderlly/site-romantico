@@ -1,8 +1,8 @@
 // ===== CONFIGURAÇÃO DO FIREBASE (SEM AUTENTICAÇÃO) =====
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp, doc, deleteDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
-// Configuração do Firebase (MESMA DO SEU INDEX.HTML)
+// Configuração do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyBCORH8KvPxzPW3U0JMbgPV4WJiEVsDyWg",
     authDomain: "site-romantico-9acba.firebaseapp.com",
@@ -74,7 +74,6 @@ async function saveMessageToFirestore(messageData) {
     try {
         console.log('💾 Salvando mensagem no Firestore...');
         
-        // Adicionar timestamp
         const messageWithTimestamp = {
             ...messageData,
             createdAt: serverTimestamp(),
@@ -82,7 +81,6 @@ async function saveMessageToFirestore(messageData) {
             timestamp: new Date().getTime()
         };
         
-        // Adicionar à coleção "messages"
         const docRef = await addDoc(collection(db, "messages"), messageWithTimestamp);
         console.log('✅ Mensagem salva com ID:', docRef.id);
         
@@ -109,14 +107,12 @@ function loadMessagesFromFirestore(callback) {
     try {
         console.log('📥 Carregando mensagens do Firestore...');
         
-        // Consulta para obter mensagens ordenadas por timestamp (mais recente primeiro)
         const messagesQuery = query(
             collection(db, "messages"),
             orderBy("timestamp", "desc"),
             limit(100)
         );
         
-        // Listener em tempo real (sem autenticação necessária)
         messagesUnsubscribe = onSnapshot(
             messagesQuery,
             (snapshot) => {
@@ -124,7 +120,6 @@ function loadMessagesFromFirestore(callback) {
                 snapshot.forEach((doc) => {
                     const data = doc.data();
                     
-                    // Formatar data para exibição
                     let displayDate = 'Data não disponível';
                     try {
                         if (data.createdAt && data.createdAt.toDate) {
@@ -168,8 +163,6 @@ function loadMessagesFromFirestore(callback) {
             (error) => {
                 console.error('❌ Erro ao carregar mensagens:', error);
                 updateFirebaseStatus('error', error.message);
-                
-                // Fallback para localStorage
                 loadMessagesFromLocalStorage(callback);
             }
         );
@@ -179,8 +172,6 @@ function loadMessagesFromFirestore(callback) {
     } catch (error) {
         console.error('❌ Erro na consulta:', error);
         updateFirebaseStatus('error', error.message);
-        
-        // Fallback para localStorage
         loadMessagesFromLocalStorage(callback);
         return null;
     }
@@ -188,13 +179,11 @@ function loadMessagesFromFirestore(callback) {
 
 // ===== FUNÇÕES PARA MODO OFFLINE (LOCALSTORAGE) =====
 
-// Carregar mensagens do localStorage
 function loadMessagesFromLocalStorage(callback) {
     try {
         const savedMessages = JSON.parse(localStorage.getItem('loveMessages_offline')) || [];
         console.log(`📱 ${savedMessages.length} mensagens carregadas do localStorage`);
         
-        // Ordenar por timestamp (mais recente primeiro)
         savedMessages.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         
         callback(savedMessages);
@@ -205,7 +194,6 @@ function loadMessagesFromLocalStorage(callback) {
     }
 }
 
-// Salvar mensagem no localStorage
 function saveMessageToLocalStorage(messageData) {
     try {
         const localMessage = {
@@ -217,11 +205,9 @@ function saveMessageToLocalStorage(messageData) {
             syncStatus: 'pending'
         };
         
-        // Salvar no localStorage
         const savedMessages = JSON.parse(localStorage.getItem('loveMessages_offline')) || [];
         savedMessages.push(localMessage);
         
-        // Manter apenas as últimas 100 mensagens
         if (savedMessages.length > 100) {
             savedMessages.length = 100;
         }
@@ -237,7 +223,6 @@ function saveMessageToLocalStorage(messageData) {
     }
 }
 
-// Sincronizar mensagens offline com Firestore
 async function syncOfflineMessages() {
     if (!db) {
         console.log('⚠️ Firestore não disponível para sincronização');
@@ -259,10 +244,8 @@ async function syncOfflineMessages() {
         
         for (const message of pendingMessages) {
             try {
-                // Remover campos locais antes de enviar
                 const { id, localSaved, localTimestamp, syncStatus, ...firestoreMessage } = message;
                 
-                // Enviar para Firestore
                 await addDoc(collection(db, "messages"), {
                     ...firestoreMessage,
                     createdAt: serverTimestamp(),
@@ -279,7 +262,6 @@ async function syncOfflineMessages() {
             }
         }
         
-        // Remover mensagens sincronizadas do localStorage
         if (syncedCount > 0) {
             const updatedMessages = savedMessages.filter(msg => 
                 !pendingMessages.slice(0, syncedCount).some(pending => pending.id === msg.id)
@@ -293,9 +275,104 @@ async function syncOfflineMessages() {
     }
 }
 
+// ===== FUNÇÕES PARA GERENCIAR FOTOS NO FIRESTORE =====
+
+async function savePhotoToFirestore(photoData) {
+    if (!db) {
+        throw new Error('Firebase não inicializado');
+    }
+    
+    try {
+        console.log('💾 Salvando foto no Firestore...');
+        
+        const photoWithTimestamp = {
+            ...photoData,
+            createdAt: serverTimestamp(),
+            timestamp: Date.now()
+        };
+        
+        const docRef = await addDoc(collection(db, "photos"), photoWithTimestamp);
+        console.log('✅ Foto salva com ID:', docRef.id);
+        
+        return {
+            success: true,
+            photoId: docRef.id
+        };
+        
+    } catch (error) {
+        console.error('❌ Erro ao salvar foto:', error);
+        throw error;
+    }
+}
+
+function loadPhotosFromFirestore(callback) {
+    if (!db) {
+        console.error('❌ Firestore não inicializado');
+        callback([]);
+        return null;
+    }
+    
+    try {
+        console.log('📥 Carregando fotos do Firestore...');
+        
+        const photosQuery = query(
+            collection(db, "photos"),
+            orderBy("timestamp", "desc")
+        );
+        
+        return onSnapshot(
+            photosQuery,
+            (snapshot) => {
+                const photos = [];
+                snapshot.forEach((doc) => {
+                    const data = doc.data();
+                    photos.push({
+                        id: doc.id,
+                        src: data.src,
+                        alt: data.alt,
+                        description: data.description,
+                        fallback: data.fallback || '💖',
+                        timestamp: data.timestamp,
+                        createdAt: data.createdAt
+                    });
+                });
+                
+                console.log(`✅ ${photos.length} fotos carregadas do Firestore`);
+                callback(photos);
+            },
+            (error) => {
+                console.error('❌ Erro ao carregar fotos:', error);
+                callback([]);
+            }
+        );
+        
+    } catch (error) {
+        console.error('❌ Erro na consulta:', error);
+        callback([]);
+        return null;
+    }
+}
+
+async function deletePhotoFromFirestore(photoId) {
+    if (!db) {
+        throw new Error('Firebase não inicializado');
+    }
+    
+    try {
+        const photoRef = doc(db, "photos", photoId);
+        await deleteDoc(photoRef);
+        
+        console.log('✅ Foto deletada:', photoId);
+        return { success: true };
+        
+    } catch (error) {
+        console.error('❌ Erro ao deletar foto:', error);
+        throw error;
+    }
+}
+
 // ===== MONITORAMENTO DE CONEXÃO =====
 
-// Verificar se está online
 function checkConnection() {
     if (navigator.onLine && db) {
         isConnected = true;
@@ -308,24 +385,19 @@ function checkConnection() {
     }
 }
 
-// Configurar listeners de rede
 function setupNetworkListeners() {
-    // Verificar conexão inicial
     checkConnection();
     
-    // Quando voltar a conexão
     window.addEventListener('online', () => {
         console.log('🌐 Conexão restabelecida');
         isConnected = true;
         updateFirebaseStatus('online');
         
-        // Tentar sincronizar mensagens offline
         if (db) {
             setTimeout(() => syncOfflineMessages(), 2000);
         }
     });
     
-    // Quando perder conexão
     window.addEventListener('offline', () => {
         console.log('⚠️ Sem conexão com a internet');
         isConnected = false;
@@ -335,7 +407,6 @@ function setupNetworkListeners() {
 
 // ===== INICIALIZAÇÃO AUTOMÁTICA =====
 
-// Inicializar quando o script carregar
 initializeFirebase();
 setupNetworkListeners();
 
@@ -347,11 +418,16 @@ window.firebaseApp = {
     // Inicialização
     initialize: initializeFirebase,
     
-    // Funções principais
+    // Mensagens
     addMessage: saveMessageToFirestore,
     loadMessages: loadMessagesFromFirestore,
     
-    // Funções offline
+    // Fotos
+    savePhoto: savePhotoToFirestore,
+    loadPhotos: loadPhotosFromFirestore,
+    deletePhoto: deletePhotoFromFirestore,
+    
+    // Offline
     saveToLocalStorage: saveMessageToLocalStorage,
     loadFromLocalStorage: loadMessagesFromLocalStorage,
     syncOfflineMessages: syncOfflineMessages,
@@ -361,4 +437,4 @@ window.firebaseApp = {
     checkConnection: checkConnection
 };
 
-console.log('🔥 Firebase App (sem autenticação) carregado com sucesso!');
+console.log('🔥 Firebase App carregado com sucesso!');

@@ -198,6 +198,41 @@
     <section id="fotos" class="gallery">
         <div class="container">
             <h2>Nossos Momentos Especiais</h2>
+            
+            <!-- Botões da Galeria -->
+            <div class="gallery-actions">
+                <!-- Botão principal: Adicionar foto -->
+                <button class="upload-gallery-btn" onclick="openUploadModal()" style="background: linear-gradient(135deg, #e91e63, #ff6b9d);">
+                    <i class="fas fa-plus-circle"></i> 📷 Adicionar Nova Foto
+                </button>
+                
+                <!-- Grupo de botões de backup -->
+                <div style="display: flex; gap: 10px;">
+                    <!-- Botão de Exportar -->
+                    <button class="upload-gallery-btn" onclick="exportPhotos()" style="background: linear-gradient(135deg, #2196F3, #64B5F6);">
+                        <i class="fas fa-download"></i> 💾 Exportar
+                    </button>
+                    
+                    <!-- Botão de Importar -->
+                    <button class="upload-gallery-btn" onclick="document.getElementById('importInput').click()" style="background: linear-gradient(135deg, #4CAF50, #8BC34A);">
+                        <i class="fas fa-upload"></i> 📂 Importar
+                    </button>
+                    <input type="file" id="importInput" accept=".json,application/json" style="display: none;" onchange="importPhotos(this.files[0])">
+                </div>
+                
+                <!-- Contador de fotos -->
+                <span class="photo-count" id="photoCount">0 fotos</span>
+            </div>
+            
+            <!-- Legenda explicativa -->
+            <div style="text-align: center; margin-bottom: 20px; opacity: 0.7; font-size: 0.9rem;">
+                <span style="background: rgba(233, 30, 99, 0.1); padding: 5px 15px; border-radius: 20px;">
+                    <i class="fas fa-info-circle"></i> 
+                    <strong>📷 Adicionar:</strong> imagens (JPG, PNG) | 
+                    <strong>📂 Importar:</strong> arquivo JSON de backup
+                </span>
+            </div>
+            
             <div class="photo-grid" id="photoGrid">
                 <!-- As fotos serão carregadas via JavaScript -->
             </div>
@@ -210,7 +245,7 @@
             <h2>💌 Mural de Mensagens</h2>
             <p class="wall-subtitle">Deslize para ler minhas mensagens de amor para você</p>
             
-            <!-- Botão para adicionar nova mensagem (admin) -->
+            <!-- Botão para adicionar nova mensagem -->
             <div class="add-message-container">
                 <button class="add-message-btn" id="addMessageBtn">
                     <i class="fas fa-plus-circle"></i> Adicionar Nova Mensagem
@@ -410,11 +445,63 @@
         </div>
     </div>
 
-    <!-- Módulo Firebase (SEM AUTENTICAÇÃO) -->
-    <script type="module" src="firebase-app.js"></script>
+<!-- Modal para Upload de Imagens -->
+<div class="upload-modal" id="uploadModal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeUploadModal()">&times;</span>
+        <h3><i class="fas fa-cloud-upload-alt"></i> Adicionar Nova Foto</h3>
+        
+        <!-- IMPORTANTE: O formulário NÃO deve estar dentro de outro formulário -->
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Arraste uma foto ou clique para selecionar</p>
+                <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 5px;">Apenas uma foto por vez</p>
+                <input type="file" id="imageInput" name="image" accept="image/*" required>
+                <div class="image-preview" id="imagePreview"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="imageAlt">Título da Foto:</label>
+                <input type="text" id="imageAlt" placeholder="Ex: Nosso momento especial" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="imageDescription">Descrição:</label>
+                <textarea id="imageDescription" rows="3" placeholder="Descreva este momento especial..."></textarea>
+            </div>
+            
+            <div class="progress-bar-container" id="progressContainer" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="uploadProgress"></div>
+                </div>
+                <p id="progressText">Enviando...</p>
+            </div>
+            
+            <div class="form-actions">
+                <!-- IMPORTANTE: type="button" para cancelar -->
+                <button type="button" class="cancel-btn" onclick="closeUploadModal()">Cancelar</button>
+                <!-- IMPORTANTE: type="submit" para enviar -->
+                <button type="submit" class="save-btn" id="uploadBtn">
+                    <i class="fas fa-upload"></i> Enviar Foto
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
-    <!-- Script principal -->
-    <script src="script.js"></script>
+<!-- Módulo Firebase -->
+<script type="module" src="firebase-app.js"></script>
+
+<!-- Scripts modulares -->
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/photos.js"></script>
+<script src="js/upload.js"></script>
+<script src="js/messages.js"></script>
+<script src="js/player.js"></script>
+<script src="js/garden.js"></script>
+<script src="js/main.js"></script>
 </body>
 
 </html>
